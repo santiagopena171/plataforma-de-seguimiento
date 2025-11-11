@@ -67,6 +67,11 @@ export default async function PublishResultPage({ params }: PageProps) {
     notFound();
   }
 
+  // Verificar si el resultado ya está publicado
+  if (race.status === 'result_published') {
+    redirect(`/admin/penca/${params.slug}`);
+  }
+
   // Obtener el ruleset activo
   const activeRuleset = race.penca.rulesets?.find((r: any) => r.is_active);
 

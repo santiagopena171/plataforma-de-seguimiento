@@ -83,9 +83,14 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
         throw new Error(data.error || 'Error al publicar resultado');
       }
 
+      // Esperar un momento para que la base de datos se actualice
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // Redirigir de vuelta a la penca
       router.push(`/admin/penca/${slug}`);
-      router.refresh();
+      
+      // Forzar un reload completo para obtener los datos actualizados
+      window.location.href = `/admin/penca/${slug}`;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
       setLoading(false);

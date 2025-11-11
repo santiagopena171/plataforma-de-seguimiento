@@ -100,6 +100,31 @@ export default async function ManagePencaPage({ params }: PageProps) {
     .eq('penca_id', penca.id)
     .order('created_at', { ascending: false });
 
+  // Obtener scores
+  const { data: scores } = await supabase
+    .from('scores')
+    .select('*')
+    .eq('penca_id', penca.id);
+
+  // Obtener todas las predicciones con los detalles de los caballos
+  const { data: predictions } = await supabase
+    .from('predictions')
+    .select(`
+      *,
+      winner_entry:race_entries!predictions_winner_pick_fkey (
+        id,
+        program_number,
+        horse_name
+      )
+    `)
+    .in('race_id', races?.map(r => r.id) || []);
+
+  // Obtener resultados oficiales publicados
+  const { data: raceResults } = await supabase
+    .from('race_results')
+    .select('*')
+    .in('race_id', races?.map(r => r.id) || []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -161,6 +186,9 @@ export default async function ManagePencaPage({ params }: PageProps) {
           pencaSlug={params.slug}
           races={races || []}
           memberships={memberships || []}
+          scores={scores || []}
+          predictions={predictions || []}
+          raceResults={raceResults || []}
           invitesCount={invites?.length || 0}
         />
       </main>

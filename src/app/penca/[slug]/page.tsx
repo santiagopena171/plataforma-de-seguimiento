@@ -67,11 +67,33 @@ export default async function PencaPage({ params }: PencaPageProps) {
   // Obtener predicciones del usuario
   const { data: predictions } = await supabase
     .from('predictions')
+    .select(`
+      *,
+      winner_entry:race_entries!predictions_winner_pick_fkey (
+        id,
+        program_number,
+        horse_name
+      )
+    `)
+    .eq('user_id', session.user.id)
+    .in('race_id', races?.map(r => r.id) || []);
+
+  // Obtener resultados publicados
+  const { data: raceResults } = await supabase
+    .from('race_results')
+    .select('*')
+    .in('race_id', races?.map(r => r.id) || []);
+
+  // Obtener scores del usuario
+  const { data: userScores } = await supabase
+    .from('scores')
     .select('*')
     .eq('user_id', session.user.id)
     .in('race_id', races?.map(r => r.id) || []);
 
   const predictionsMap = new Map(predictions?.map(p => [p.race_id, p]) || []);
+  const resultsMap = new Map(raceResults?.map(r => [r.race_id, r]) || []);
+  const scoresMap = new Map(userScores?.map(s => [s.race_id, s]) || []);
 
   // Obtener tabla de posiciones (leaderboard)
   const { data: leaderboard } = await supabase
@@ -87,13 +109,13 @@ export default async function PencaPage({ params }: PencaPageProps) {
   // Calcular puntos totales para cada usuario
   const leaderboardWithPoints = await Promise.all(
     (leaderboard || []).map(async (member) => {
-      const { data: userPredictions } = await supabase
-        .from('predictions')
-        .select('points_earned')
+      const { data: memberScores } = await supabase
+        .from('scores')
+        .select('points_total')
         .eq('user_id', member.user_id)
-        .in('race_id', races?.map(r => r.id) || []);
+        .eq('penca_id', penca.id);
 
-      const totalPoints = userPredictions?.reduce((sum, pred) => sum + (pred.points_earned || 0), 0) || 0;
+      const totalPoints = memberScores?.reduce((sum, score) => sum + (score.points_total || 0), 0) || 0;
 
       return {
         user_id: member.user_id,
@@ -225,27 +247,102 @@ export default async function PencaPage({ params }: PencaPageProps) {
 
                   {/* Prediction Status */}
                   {prediction ? (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-sm font-semibold text-blue-900">
-                            ✓ Ya hiciste tu predicción
-                          </p>
-                          {prediction.scored_at && (
-                            <p className="text-sm text-blue-800 mt-1">
-                              Puntos obtenidos: <span className="font-bold">{prediction.points_earned || 0}</span>
-                            </p>
-                          )}
+                    <div className="space-y-3">
+                      {race.status === 'result_published' && resultsMap.has(race.id) ? (
+                        <div className="grid grid-cols-2 gap-4">
+                          {/* Left: Tu Predicción */}
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <p className="text-sm font-semibold text-blue-900 mb-3">Tu Predicción</p>
+                            <div className="space-y-2 text-sm">
+                              {prediction.winner_entry && (
+                                <div>
+                                  <p className="text-xs text-blue-700 font-semibold mb-1">Ganador:</p>
+                                  <p className="text-blue-900 font-bold">
+                                    #{prediction.winner_entry.program_number} {prediction.winner_entry.horse_name}
+                                  </p>
+                                </div>
+                              )}
+                              {prediction.exacta_pick && Array.isArray(prediction.exacta_pick) && prediction.exacta_pick.length > 0 && (
+                                <div>
+                                  <p className="text-xs text-blue-700 font-semibold mb-1">Exacta:</p>
+                                  <div className="space-y-1">
+                                    {prediction.exacta_pick.map((entryId: string, index: number) => {
+                                      const entry = race.race_entries?.find((e: any) => e.id === entryId);
+                                      return entry ? (
+                                        <p key={entryId} className="text-blue-900">
+                                          {index + 1}°: <span className="font-bold">#{entry.program_number}</span>
+                                        </p>
+                                      ) : null;
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                              {prediction.trifecta_pick && Array.isArray(prediction.trifecta_pick) && prediction.trifecta_pick.length > 0 && (
+                                <div>
+                                  <p className="text-xs text-blue-700 font-semibold mb-1">Trifecta:</p>
+                                  <div className="space-y-1">
+                                    {prediction.trifecta_pick.map((entryId: string, index: number) => {
+                                      const entry = race.race_entries?.find((e: any) => e.id === entryId);
+                                      return entry ? (
+                                        <p key={entryId} className="text-blue-900">
+                                          {index + 1}°: <span className="font-bold">#{entry.program_number}</span>
+                                        </p>
+                                      ) : null;
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Right: Resultado Publicado */}
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <p className="text-sm font-semibold text-yellow-900 mb-3">🏆 Resultado Publicado</p>
+                            <div className="space-y-1 text-sm">
+                              {resultsMap.get(race.id)?.official_order?.slice(0, 3).map((entryId: string, index: number) => {
+                                const entry = race.race_entries?.find((e: any) => e.id === entryId);
+                                return entry ? (
+                                  <p key={entryId} className="text-yellow-900">
+                                    {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} {index + 1}°: <span className="font-bold">#{entry.program_number} {entry.horse_name}</span>
+                                  </p>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
                         </div>
-                        {!isClosed && !isPast && (
-                          <Link
-                            href={`/penca/${params.slug}/race/${race.id}/predict`}
-                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            Modificar →
-                          </Link>
-                        )}
-                      </div>
+                      ) : (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-sm font-semibold text-blue-900">
+                                ✓ Ya hiciste tu predicción
+                              </p>
+                              {prediction.winner_entry && (
+                                <p className="text-sm text-blue-800 mt-1">
+                                  Ganador: <span className="font-bold">#{prediction.winner_entry.program_number} {prediction.winner_entry.horse_name}</span>
+                                </p>
+                              )}
+                            </div>
+                            {!isClosed && !isPast && (
+                              <Link
+                                href={`/penca/${params.slug}/race/${race.id}/predict`}
+                                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                              >
+                                Modificar →
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Puntos Obtenidos */}
+                      {race.status === 'result_published' && scoresMap.has(race.id) && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                          <p className="text-lg font-bold text-green-700">
+                            Tus puntos: {scoresMap.get(race.id)?.points_total || 0} pts
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div>

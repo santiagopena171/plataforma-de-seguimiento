@@ -72,10 +72,9 @@ export async function POST(
       .from('race_results')
       .upsert({
         race_id: raceId,
-        first_place_entry_id: firstPlace,
-        second_place_entry_id: secondPlace,
-        third_place_entry_id: thirdPlace,
+        official_order: [firstPlace, secondPlace, thirdPlace],
         published_at: new Date().toISOString(),
+        published_by: session.user.id,
       }, {
         onConflict: 'race_id'
       });
@@ -88,10 +87,10 @@ export async function POST(
       );
     }
 
-    // Actualizar el estado de la carrera a finished
+    // Actualizar el estado de la carrera a result_published
     const { error: updateError } = await supabase
       .from('races')
-      .update({ status: 'finished' })
+      .update({ status: 'result_published' })
       .eq('id', raceId);
 
     if (updateError) {
@@ -116,33 +115,70 @@ export async function POST(
     const pointsData = [];
     for (const prediction of predictions || []) {
       let points = 0;
+      const breakdown: any = {};
 
       // Modalidad: Winner
       if (activeRuleset.modalities_enabled.includes('winner')) {
         if (prediction.winner_pick === firstPlace) {
+          breakdown.winner = activeRuleset.points_top3.first;
           points += activeRuleset.points_top3.first;
         } else if (prediction.winner_pick === secondPlace) {
+          breakdown.winner = activeRuleset.points_top3.second;
           points += activeRuleset.points_top3.second;
         } else if (prediction.winner_pick === thirdPlace) {
+          breakdown.winner = activeRuleset.points_top3.third;
           points += activeRuleset.points_top3.third;
         }
       }
 
-      // Aquí podrías agregar lógica para otras modalidades (exacta, trifecta, etc.)
+      // Modalidad: Exacta (primeros 2 en orden correcto)
+      if (activeRuleset.modalities_enabled.includes('exacta')) {
+        if (prediction.exacta_pick && Array.isArray(prediction.exacta_pick)) {
+          if (
+            prediction.exacta_pick[0] === firstPlace &&
+            prediction.exacta_pick[1] === secondPlace
+          ) {
+            breakdown.exacta = activeRuleset.points_top3.first + activeRuleset.points_top3.second;
+            points += activeRuleset.points_top3.first + activeRuleset.points_top3.second;
+          }
+        }
+      }
+
+      // Modalidad: Trifecta (primeros 3 en orden correcto)
+      if (activeRuleset.modalities_enabled.includes('trifecta')) {
+        if (prediction.trifecta_pick && Array.isArray(prediction.trifecta_pick)) {
+          if (
+            prediction.trifecta_pick[0] === firstPlace &&
+            prediction.trifecta_pick[1] === secondPlace &&
+            prediction.trifecta_pick[2] === thirdPlace
+          ) {
+            breakdown.trifecta = activeRuleset.points_top3.first + activeRuleset.points_top3.second + activeRuleset.points_top3.third;
+            points += activeRuleset.points_top3.first + activeRuleset.points_top3.second + activeRuleset.points_top3.third;
+          }
+        }
+      }
 
       pointsData.push({
         prediction_id: prediction.id,
         points_earned: points,
       });
 
-      // Actualizar los puntos en la predicción
-      await supabase
-        .from('predictions')
-        .update({ 
-          points_earned: points,
-          scored_at: new Date().toISOString()
-        })
-        .eq('id', prediction.id);
+      // Actualizar los puntos en la tabla scores con el breakdown
+      const { error: scoreError } = await supabase
+        .from('scores')
+        .upsert({
+          penca_id: race.penca_id,
+          race_id: raceId,
+          user_id: prediction.user_id,
+          points_total: points,
+          breakdown: breakdown,
+        }, {
+          onConflict: 'race_id,user_id'
+        });
+
+      if (scoreError) {
+        console.error('Error saving score:', { scoreError, user_id: prediction.user_id, race_id: raceId, points });
+      }
     }
 
     return NextResponse.json({
