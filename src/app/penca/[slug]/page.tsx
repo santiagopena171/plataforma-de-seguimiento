@@ -3,6 +3,24 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import LogoutButton from '@/components/LogoutButton';
+import RefreshButton from '@/components/RefreshButton';
+
+// Función para formatear la hora sin conversión de zona horaria
+function formatRaceTime(isoString: string): string {
+  // Extraer solo la parte HH:MM del ISO string
+  const timeMatch = isoString.match(/T(\d{2}):(\d{2})/);
+  if (!timeMatch) return isoString;
+  
+  const [_, hourStr, minuteStr] = timeMatch;
+  const hour = parseInt(hourStr);
+  const minute = parseInt(minuteStr);
+  
+  // Convertir de 24h a 12h
+  let hour12 = hour % 12 || 12;
+  const meridiem = hour >= 12 ? 'PM' : 'AM';
+  
+  return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${meridiem}`;
+}
 
 interface PencaPageProps {
   params: {
@@ -183,9 +201,39 @@ export default async function PencaPage({ params }: PencaPageProps) {
           </div>
         </div>
 
+        {/* Reglas de la Penca */}
+        <div className="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-6 mb-6">
+          <h2 className="text-lg font-bold text-blue-900 mb-4">📋 Reglas de la Penca</h2>
+          <div className="space-y-3 text-sm text-blue-800">
+            <div className="flex items-start space-x-3">
+              <span className="font-bold text-blue-600">1.</span>
+              <p><strong>Ganador (1 punto):</strong> Acertar al caballo ganador de la carrera.</p>
+            </div>
+            <div className="flex items-start space-x-3">
+              <span className="font-bold text-blue-600">2.</span>
+              <p><strong>Exacta (2 puntos):</strong> Acertar el ganador y el segundo lugar en el orden correcto.</p>
+            </div>
+            <div className="flex items-start space-x-3">
+              <span className="font-bold text-blue-600">3.</span>
+              <p><strong>Trifecta (3 puntos):</strong> Acertar el ganador, segundo y tercer lugar en el orden correcto.</p>
+            </div>
+            <div className="flex items-start space-x-3">
+              <span className="font-bold text-blue-600">4.</span>
+              <p><strong>Predicciones antes del cierre:</strong> Todas las predicciones pueden realizarse hasta 15 minutos antes de que la carrera se cierre.</p>
+            </div>
+            <div className="flex items-start space-x-3">
+              <span className="font-bold text-blue-600">5.</span>
+              <p><strong>Puntuación automática:</strong> Los puntos se calculan automáticamente cuando se publiquen los resultados.</p>
+            </div>
+          </div>
+        </div>
+
         {/* Races List */}
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-gray-900">Carreras</h2>
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-gray-900">Carreras</h2>
+            <RefreshButton />
+          </div>
           
           {!races || races.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-8 text-center">
@@ -194,8 +242,10 @@ export default async function PencaPage({ params }: PencaPageProps) {
           ) : (
             races.map((race) => {
               const prediction = predictionsMap.get(race.id);
-              const raceDate = new Date(race.start_at);
-              const isPast = raceDate < new Date();
+              
+              // Simplificar: permitir predicciones basándose SOLO en el status
+              // El admin controla manualmente cuándo cerrar con el botón "Cerrar Predicciones"
+              const canMakePrediction = race.status === 'scheduled';
               const isClosed = race.status === 'closed' || race.status === 'result_published';
 
               return (
@@ -208,10 +258,9 @@ export default async function PencaPage({ params }: PencaPageProps) {
                       <div className="mt-2 space-y-1 text-sm text-gray-600">
                         <p>📍 {race.venue}</p>
                         <p>📏 {race.distance_m}m</p>
-                        <p>🕐 {raceDate.toLocaleString('es-UY', {
-                          dateStyle: 'medium',
-                          timeStyle: 'short'
-                        })}</p>
+                        <p>🕐 {new Date(race.start_at).toLocaleDateString('es-UY', {
+                          dateStyle: 'medium'
+                        })}, {formatRaceTime(race.start_at)}</p>
                       </div>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -346,10 +395,10 @@ export default async function PencaPage({ params }: PencaPageProps) {
                     </div>
                   ) : (
                     <div>
-                      {isClosed || isPast ? (
+                      {!canMakePrediction ? (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
                           <p className="text-sm text-gray-600">
-                            Esta carrera ya está cerrada
+                            Esta carrera ya está cerrada para nuevas predicciones
                           </p>
                         </div>
                       ) : (

@@ -54,13 +54,14 @@ export default function EditRacePage() {
         // Separar fecha y hora
         const startAtDate = new Date(raceData.start_at);
         const date = startAtDate.toISOString().split('T')[0];
-        const time = startAtDate.toTimeString().slice(0, 5);
+        // Extraer la hora directamente del ISO string para evitar problemas de zona horaria
+        const isoTime = raceData.start_at.split('T')[1].slice(0, 5);
         
         setFormData({
           venue: raceData.venue,
           distance_m: raceData.distance_m.toString(),
           start_date: date,
-          start_time: time,
+          start_time: isoTime,
         });
 
         // Cargar caballos

@@ -65,6 +65,10 @@ export default async function DashboardPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
+              <p className="text-sm text-gray-600">Nombre</p>
+              <p className="font-medium">{profile?.display_name || 'No configurado'}</p>
+            </div>
+            <div>
               <p className="text-sm text-gray-600">Email</p>
               <p className="font-medium">{session.user.email}</p>
             </div>

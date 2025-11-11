@@ -4,6 +4,23 @@ import { useState } from 'react';
 import Link from 'next/link';
 import DeleteRaceButton from '@/components/DeleteRaceButton';
 
+// Función para formatear la hora sin conversión de zona horaria
+function formatRaceTime(isoString: string): string {
+  // Extraer solo la parte HH:MM del ISO string
+  const timeMatch = isoString.match(/T(\d{2}):(\d{2})/);
+  if (!timeMatch) return isoString;
+  
+  const [_, hourStr, minuteStr] = timeMatch;
+  const hour = parseInt(hourStr);
+  const minute = parseInt(minuteStr);
+  
+  // Convertir de 24h a 12h
+  let hour12 = hour % 12 || 12;
+  const meridiem = hour >= 12 ? 'PM' : 'AM';
+  
+  return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${meridiem}`;
+}
+
 interface Member {
   user_id: string;
   role: string;
@@ -71,6 +88,53 @@ interface PencaTabsProps {
 export default function PencaTabs({ pencaSlug, races, memberships, scores, predictions, raceResults, invitesCount }: PencaTabsProps) {
   const [activeTab, setActiveTab] = useState<'races' | 'members' | 'leaderboard'>('races');
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
+  const [closingRace, setClosingRace] = useState<string | null>(null);
+
+  const handleClosePredictions = async (raceId: string) => {
+    try {
+      setClosingRace(raceId);
+      const response = await fetch(`/api/admin/races/${raceId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'closed' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al cerrar predicciones');
+      }
+
+      // Recargar la página para actualizar el estado
+      window.location.reload();
+    } catch (err) {
+      console.error('Error:', err);
+      alert('Error al cerrar predicciones');
+    } finally {
+      setClosingRace(null);
+    }
+  };
+
+  const handleOpenPredictions = async (raceId: string) => {
+    try {
+      setClosingRace(raceId);
+      const response = await fetch(`/api/admin/races/${raceId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'scheduled' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al abrir predicciones');
+      }
+
+      // Recargar la página para actualizar el estado
+      window.location.reload();
+    } catch (err) {
+      console.error('Error:', err);
+      alert('Error al abrir predicciones');
+    } finally {
+      setClosingRace(null);
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow">
@@ -165,10 +229,9 @@ export default function PencaTabs({ pencaSlug, races, memberships, scores, predi
                           </p>
                           <p>
                             🕐{' '}
-                            {new Date(race.start_at).toLocaleString('es-UY', {
+                            {new Date(race.start_at).toLocaleDateString('es-UY', {
                               dateStyle: 'medium',
-                              timeStyle: 'short',
-                            })}
+                            })}, {formatRaceTime(race.start_at)}
                           </p>
                           <p>🐴 {race.race_entries?.length || 0} caballos</p>
                         </div>
@@ -203,6 +266,31 @@ export default function PencaTabs({ pencaSlug, races, memberships, scores, predi
                         >
                           Editar
                         </Link>
+                        
+                        {/* Botón para cerrar/abrir predicciones */}
+                        {race.status === 'result_published' ? (
+                          <span className="text-sm text-gray-400 font-medium cursor-not-allowed">
+                            Resultado Publicado
+                          </span>
+                        ) : race.status === 'closed' ? (
+                          <button
+                            onClick={() => handleOpenPredictions(race.id)}
+                            disabled={closingRace === race.id}
+                            className="text-sm text-orange-600 hover:text-orange-800 font-medium disabled:opacity-50"
+                          >
+                            {closingRace === race.id ? 'Abriendo...' : 'Abrir Predicciones'}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleClosePredictions(race.id)}
+                            disabled={closingRace === race.id}
+                            className="text-sm text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
+                          >
+                            {closingRace === race.id ? 'Cerrando...' : 'Cerrar Predicciones'}
+                          </button>
+                        )}
+                        
+                        {/* Botón para publicar resultado */}
                         {race.status === 'result_published' ? (
                           <span className="text-sm text-gray-400 font-medium cursor-not-allowed">
                             Resultado Publicado
@@ -215,7 +303,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, scores, predi
                             Publicar Resultado
                           </Link>
                         )}
-                            <DeleteRaceButton raceId={race.id} slug={pencaSlug} />
+                        <DeleteRaceButton raceId={race.id} slug={pencaSlug} />
                       </div>
                     </div>
                   </div>

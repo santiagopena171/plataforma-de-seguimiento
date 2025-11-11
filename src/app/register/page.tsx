@@ -3,11 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const supabase = createClientComponentClient();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,19 +40,24 @@ export default function RegisterPage() {
     }
 
     try {
-      // Crear usuario en Supabase Auth
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            display_name: displayName.trim(),
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+      // Usar la API para registrar
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          email,
+          password,
+          displayName,
+        }),
       });
 
-      if (signUpError) throw signUpError;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al crear la cuenta');
+      }
 
       if (data.user) {
         setSuccess(true);
