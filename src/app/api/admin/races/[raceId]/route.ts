@@ -146,15 +146,63 @@ export async function DELETE(
   }
 
   try {
-    // Eliminar carrera (cascada eliminará entries, predictions, etc.)
-    const { error } = await supabase
+    console.log(`Intentando eliminar carrera ${params.raceId}...`);
+    
+    // Primero eliminar todas las tablas relacionadas
+    // 1. Eliminar scores de esta carrera
+    const scoresResult = await supabase
+      .from('scores')
+      .delete()
+      .eq('race_id', params.raceId);
+    console.log('Scores eliminados:', scoresResult);
+
+    // 2. Eliminar resultados de esta carrera
+    const resultsResult = await supabase
+      .from('race_results')
+      .delete()
+      .eq('race_id', params.raceId);
+    console.log('Results eliminados:', resultsResult);
+
+    // 3. Eliminar predicciones de esta carrera
+    const predictionsResult = await supabase
+      .from('predictions')
+      .delete()
+      .eq('race_id', params.raceId);
+    console.log('Predictions eliminados:', predictionsResult);
+
+    // 4. Eliminar entries de esta carrera
+    const entriesResult = await supabase
+      .from('race_entries')
+      .delete()
+      .eq('race_id', params.raceId);
+    console.log('Entries eliminados:', entriesResult);
+
+    // 5. Finalmente eliminar la carrera
+    console.log('Eliminando race...');
+    const { data: raceData, error: raceError } = await supabase
       .from('races')
       .delete()
-      .eq('id', params.raceId);
+      .eq('id', params.raceId)
+      .select();
 
-    if (error) throw error;
+    if (raceError) {
+      console.error('ERROR al eliminar race:', raceError);
+      return NextResponse.json(
+        { error: `Error al eliminar la carrera: ${raceError.message}` },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json({ success: true });
+    if (!raceData || raceData.length === 0) {
+      console.error('No se eliminó ninguna carrera');
+      return NextResponse.json(
+        { error: 'No se pudo eliminar la carrera. Verifica que exista.' },
+        { status: 404 }
+      );
+    }
+
+    console.log(`Carrera ${params.raceId} eliminada exitosamente:`, raceData);
+    return NextResponse.json({ success: true, deleted: raceData });
   } catch (err) {
     console.error('Error deleting race:', err);
     return NextResponse.json(

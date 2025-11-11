@@ -15,16 +15,18 @@ export default function DeleteRaceButton({ raceId, slug }: { raceId: string; slu
         method: 'DELETE',
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const error = await res.json();
-        alert(error.error || 'Error al eliminar la carrera');
+        console.error('Error al eliminar:', data);
+        alert(data.error || 'Error al eliminar la carrera');
         return;
       }
 
-      // Recargar la página
-      router.refresh();
-      setShowConfirm(false);
+      // Recargar la página completa para refrescar los datos
+      window.location.reload();
     } catch (err) {
+      console.error('Error en handleDelete:', err);
       alert(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
