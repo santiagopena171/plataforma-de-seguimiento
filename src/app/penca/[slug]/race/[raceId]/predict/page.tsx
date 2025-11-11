@@ -136,7 +136,7 @@ export default async function PredictRacePage({ params }: PredictPageProps) {
           <PredictionForm
             raceId={params.raceId}
             userId={session.user.id}
-            horses={race.race_entries.sort((a, b) => a.program_number - b.program_number)}
+            horses={race.race_entries.sort((a: any, b: any) => a.program_number - b.program_number)}
             modalities={ruleset.modalities_enabled as string[]}
             existingPrediction={existingPrediction}
             isClosed={isLocked}
