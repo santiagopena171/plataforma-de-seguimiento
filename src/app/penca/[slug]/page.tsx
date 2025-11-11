@@ -372,7 +372,7 @@ export default async function PencaPage({ params }: PencaPageProps) {
                                 </p>
                               )}
                             </div>
-                            {!isClosed && !isPast && (
+                            {!isClosed && canMakePrediction && (
                               <Link
                                 href={`/penca/${params.slug}/race/${race.id}/predict`}
                                 className="text-sm text-blue-600 hover:text-blue-800 font-medium"
