@@ -280,8 +280,8 @@ export default async function PencaPage({ params }: PencaPageProps) {
                       <h4 className="font-semibold text-gray-900 mb-2">Participantes:</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {race.race_entries
-                          .sort((a, b) => a.program_number - b.program_number)
-                          .map((entry) => (
+                          .sort((a: any, b: any) => a.program_number - b.program_number)
+                          .map((entry: any) => (
                             <div key={entry.id} className="flex items-center space-x-2 text-sm">
                               <span className="font-bold text-gray-700">#{entry.program_number}</span>
                               <span className="text-gray-900">{entry.horse_name}</span>
