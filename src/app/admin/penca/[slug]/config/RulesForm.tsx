@@ -39,7 +39,7 @@ export default function RulesForm({ pencaId, slug, activeRuleset, allRulesets }:
     setForm({
       ...form,
       modalities: form.modalities.includes(modality)
-        ? form.modalities.filter((m) => m !== modality)
+        ? form.modalities.filter((m: string) => m !== modality)
         : [...form.modalities, modality],
     });
   };
