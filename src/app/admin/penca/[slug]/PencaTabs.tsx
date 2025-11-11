@@ -391,7 +391,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, scores, predi
                 {memberships
                   .map((member) => {
                     // Calcular puntos totales del miembro desde scores
-                    const memberScores = scores?.filter(s => s.user_id === member.user_id) || [];
+                    const memberScores = scores?.filter((s: Score) => s.user_id === member.user_id) || [];
                     const totalPoints = memberScores.reduce((sum, score) => sum + (score.points_total || 0), 0);
                     return { member, totalPoints };
                   })

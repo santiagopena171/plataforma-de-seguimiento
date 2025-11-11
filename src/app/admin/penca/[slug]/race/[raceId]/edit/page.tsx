@@ -98,7 +98,7 @@ export default function EditRacePage() {
   };
 
   const addHorse = () => {
-    const newNumber = horses.length > 0 ? Math.max(...horses.map(h => h.program_number)) + 1 : 1;
+    const newNumber = horses.length > 0 ? Math.max(...horses.map((h: Horse) => h.program_number)) + 1 : 1;
     setHorses([
       ...horses,
       {
@@ -111,7 +111,7 @@ export default function EditRacePage() {
   };
 
   const removeHorse = (index: number) => {
-    setHorses(horses.filter((_, i) => i !== index));
+    setHorses(horses.filter((_: Horse, i: number) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

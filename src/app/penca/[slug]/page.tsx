@@ -94,13 +94,13 @@ export default async function PencaPage({ params }: PencaPageProps) {
       )
     `)
     .eq('user_id', session.user.id)
-    .in('race_id', races?.map(r => r.id) || []);
+  .in('race_id', races?.map((r: any) => r.id) || []);
 
   // Obtener resultados publicados
   const { data: raceResults } = await supabase
     .from('race_results')
     .select('*')
-    .in('race_id', races?.map(r => r.id) || []);
+  .in('race_id', races?.map((r: any) => r.id) || []);
 
   // Obtener scores del usuario
   const { data: userScores } = await supabase
@@ -109,9 +109,9 @@ export default async function PencaPage({ params }: PencaPageProps) {
     .eq('user_id', session.user.id)
     .in('race_id', races?.map(r => r.id) || []);
 
-  const predictionsMap = new Map(predictions?.map(p => [p.race_id, p]) || []);
-  const resultsMap = new Map(raceResults?.map(r => [r.race_id, r]) || []);
-  const scoresMap = new Map(userScores?.map(s => [s.race_id, s]) || []);
+  const predictionsMap = new Map(predictions?.map((p: any) => [p.race_id, p]) || []);
+  const resultsMap = new Map(raceResults?.map((r: any) => [r.race_id, r]) || []);
+  const scoresMap = new Map(userScores?.map((s: any) => [s.race_id, s]) || []);
 
   // Obtener tabla de posiciones (leaderboard)
   const { data: leaderboard } = await supabase

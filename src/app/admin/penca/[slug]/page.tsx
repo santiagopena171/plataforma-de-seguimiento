@@ -117,13 +117,13 @@ export default async function ManagePencaPage({ params }: PageProps) {
         horse_name
       )
     `)
-    .in('race_id', races?.map(r => r.id) || []);
+  .in('race_id', races?.map((r: any) => r.id) || []);
 
   // Obtener resultados oficiales publicados
   const { data: raceResults } = await supabase
     .from('race_results')
     .select('*')
-    .in('race_id', races?.map(r => r.id) || []);
+  .in('race_id', races?.map((r: any) => r.id) || []);
 
   return (
     <div className="min-h-screen bg-gray-50">

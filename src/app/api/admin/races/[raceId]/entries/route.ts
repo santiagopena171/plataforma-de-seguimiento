@@ -92,7 +92,7 @@ export async function PUT(
     const newIds = new Set(body.entries.filter((e: RaceEntry) => e.id && !e.id.startsWith('new-')).map((e: RaceEntry) => e.id));
 
     // Eliminar caballos que no están en la lista nueva
-    const toDelete = Array.from(existingIds).filter(id => !newIds.has(id));
+  const toDelete = Array.from(existingIds).filter((id: string) => !newIds.has(id));
     if (toDelete.length > 0) {
       const { error: deleteError } = await supabase
         .from('race_entries')
