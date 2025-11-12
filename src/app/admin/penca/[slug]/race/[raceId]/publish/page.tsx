@@ -118,6 +118,9 @@ export default async function PublishResultPage({ params }: PageProps) {
                 <p>1° lugar: {activeRuleset.points_top3.first} puntos</p>
                 <p>2° lugar: {activeRuleset.points_top3.second} puntos</p>
                 <p>3° lugar: {activeRuleset.points_top3.third} puntos</p>
+                {activeRuleset.points_top3.fourth !== undefined && (
+                  <p>4° lugar: {activeRuleset.points_top3.fourth} puntos</p>
+                )}
               </div>
             </div>
           )}

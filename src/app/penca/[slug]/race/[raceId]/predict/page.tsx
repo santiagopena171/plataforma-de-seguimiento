@@ -154,6 +154,9 @@ export default async function PredictRacePage({ params }: PredictPageProps) {
                 <p>🥇 1° Puesto: <strong>{(ruleset.points_top3 as any).first || 5} puntos</strong></p>
                 <p>🥈 2° Puesto: <strong>{(ruleset.points_top3 as any).second || 3} puntos</strong></p>
                 <p>🥉 3° Puesto: <strong>{(ruleset.points_top3 as any).third || 1} punto</strong></p>
+                {(ruleset.points_top3 as any).fourth !== undefined && (
+                  <p>4° Puesto: <strong>{(ruleset.points_top3 as any).fourth} puntos</strong></p>
+                )}
               </div>
             </div>
 

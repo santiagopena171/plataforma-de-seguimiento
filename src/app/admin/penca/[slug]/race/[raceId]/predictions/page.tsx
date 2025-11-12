@@ -149,7 +149,8 @@ export default async function AdminPredictionsPage({ params }: PageProps) {
     participants?.map((entry: any) => ({
       id: entry.id,
       number: entry.program_number,
-      label: `#${entry.program_number} - ${entry.horse_name}${entry.jockey ? ` (${entry.jockey})` : ''}`,
+      // Mostrar solo el número del caballo como etiqueta para evitar duplicados y "undefined"
+      label: `#${entry.program_number}`,
     })) || [];
 
   return (

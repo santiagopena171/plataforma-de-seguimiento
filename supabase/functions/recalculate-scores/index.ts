@@ -201,6 +201,35 @@ async function calculateScores(
       }
     }
 
+    // Place points (Top 4) — award points depending on finishing position of picked horses
+    // Support legacy 'top3' flag too for backwards compatibility
+    if (modalities.includes('place') || modalities.includes('top3')) {
+      breakdown.place = []
+      const picks = [
+        prediction.winner_pick,
+        ...(prediction.exacta_pick || []),
+        ...(prediction.trifecta_pick || []),
+      ].filter((p, i, arr) => p && arr.indexOf(p) === i) // unique picks
+
+      for (const pick of picks) {
+        if (pick === officialOrder[0]) {
+          breakdown.place.push(pointsTop3.first)
+          totalPoints += pointsTop3.first
+        } else if (pick === officialOrder[1]) {
+          breakdown.place.push(pointsTop3.second)
+          totalPoints += pointsTop3.second
+        } else if (pick === officialOrder[2]) {
+          breakdown.place.push(pointsTop3.third)
+          totalPoints += pointsTop3.third
+        } else if (officialOrder[3] && pick === officialOrder[3]) {
+          breakdown.place.push(pointsTop3.fourth || 0)
+          totalPoints += pointsTop3.fourth || 0
+        } else {
+          breakdown.place.push(0)
+        }
+      }
+    }
+
     await supabaseClient.from('scores').insert({
       penca_id: pencaId,
       race_id: raceId,

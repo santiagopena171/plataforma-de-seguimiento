@@ -66,13 +66,21 @@ export async function POST(
         { status: 400 }
       );
     }
+      const fourthPlace = Object.entries(positions).find(([, pos]) => pos === 4)?.[0];
+
+      if (!firstPlace || !secondPlace || !thirdPlace || !fourthPlace) {
+        return NextResponse.json(
+          { error: 'Faltan los primeros 4 lugares' },
+          { status: 400 }
+        );
+      }
 
     // Crear o actualizar el resultado de la carrera
     const { error: resultError } = await supabase
       .from('race_results')
       .upsert({
         race_id: raceId,
-        official_order: [firstPlace, secondPlace, thirdPlace],
+         official_order: [firstPlace, secondPlace, thirdPlace, fourthPlace],
         published_at: new Date().toISOString(),
         published_by: session.user.id,
       }, {
@@ -117,17 +125,26 @@ export async function POST(
       let points = 0;
       const breakdown: any = {};
 
-      // Modalidad: Winner
-      if (activeRuleset.modalities_enabled.includes('winner')) {
+      // Modalidad: Winner / Place (Top 4)
+      // Treat 'winner' and 'place' (and legacy 'top3') as the single-pick place modality
+      const isPlaceMode =
+        activeRuleset.modalities_enabled.includes('winner') ||
+        activeRuleset.modalities_enabled.includes('place') ||
+        activeRuleset.modalities_enabled.includes('top3');
+
+      if (isPlaceMode) {
         if (prediction.winner_pick === firstPlace) {
-          breakdown.winner = activeRuleset.points_top3.first;
-          points += activeRuleset.points_top3.first;
+          breakdown.winner = activeRuleset.points_top3.first || 0;
+          points += activeRuleset.points_top3.first || 0;
         } else if (prediction.winner_pick === secondPlace) {
-          breakdown.winner = activeRuleset.points_top3.second;
-          points += activeRuleset.points_top3.second;
+          breakdown.winner = activeRuleset.points_top3.second || 0;
+          points += activeRuleset.points_top3.second || 0;
         } else if (prediction.winner_pick === thirdPlace) {
-          breakdown.winner = activeRuleset.points_top3.third;
-          points += activeRuleset.points_top3.third;
+          breakdown.winner = activeRuleset.points_top3.third || 0;
+          points += activeRuleset.points_top3.third || 0;
+        } else if (prediction.winner_pick === fourthPlace) {
+          breakdown.winner = activeRuleset.points_top3.fourth || 0;
+          points += activeRuleset.points_top3.fourth || 0;
         }
       }
 

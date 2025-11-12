@@ -18,6 +18,7 @@ export default function RulesForm({ pencaId, slug, activeRuleset, allRulesets }:
     points_first: activeRuleset?.points_top3?.first || 5,
     points_second: activeRuleset?.points_top3?.second || 3,
     points_third: activeRuleset?.points_top3?.third || 1,
+    points_fourth: activeRuleset?.points_top3?.fourth || 0,
     modalities: activeRuleset?.modalities_enabled || ['winner'],
     lock_minutes: activeRuleset?.lock_minutes_before_start || 15,
     sealed: activeRuleset?.sealed_predictions_until_close !== false,
@@ -32,7 +33,7 @@ export default function RulesForm({ pencaId, slug, activeRuleset, allRulesets }:
     { id: 'winner', label: 'Ganador' },
     { id: 'exacta', label: 'Exacta (1° y 2°)' },
     { id: 'trifecta', label: 'Trifecta (1°, 2° y 3°)' },
-    { id: 'place', label: 'Lugar (Top 3)' },
+    { id: 'place', label: 'Lugar (Top 4)' },
   ];
 
   const handleModalityToggle = (modality: string) => {
@@ -61,6 +62,7 @@ export default function RulesForm({ pencaId, slug, activeRuleset, allRulesets }:
             first: form.points_first,
             second: form.points_second,
             third: form.points_third,
+            fourth: form.points_fourth,
           },
           modalities_enabled: form.modalities,
           lock_minutes_before_start: form.lock_minutes,
@@ -118,7 +120,7 @@ export default function RulesForm({ pencaId, slug, activeRuleset, allRulesets }:
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Distribución de Puntos
           </h3>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 1° Lugar
@@ -152,6 +154,18 @@ export default function RulesForm({ pencaId, slug, activeRuleset, allRulesets }:
                 min="0"
                 value={form.points_third}
                 onChange={(e) => setForm({ ...form, points_third: parseInt(e.target.value) || 0 })}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                4° Lugar
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={form.points_fourth}
+                onChange={(e) => setForm({ ...form, points_fourth: parseInt(e.target.value) || 0 })}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
@@ -273,7 +287,7 @@ export default function RulesForm({ pencaId, slug, activeRuleset, allRulesets }:
                       </div>
                       <div className="text-right text-sm text-gray-600">
                         <p>
-                          Puntos: {ruleset.points_top3.first}/{ruleset.points_top3.second}/{ruleset.points_top3.third}
+                          Puntos: {ruleset.points_top3.first}/{ruleset.points_top3.second}/{ruleset.points_top3.third}{ruleset.points_top3.fourth ? `/${ruleset.points_top3.fourth}` : ''}
                         </p>
                         <p className="text-xs mt-1">
                           {ruleset.modalities_enabled.join(', ')}

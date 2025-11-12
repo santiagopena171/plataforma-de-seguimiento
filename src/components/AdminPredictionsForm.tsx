@@ -44,8 +44,6 @@ export default function AdminPredictionsForm({
   // Estado: predicciones por jugador
   const [predictions, setPredictions] = useState<Record<string, {
     winner: string;
-    second: string;
-    third: string;
   }>>({});
 
   // Inicializar predicciones (vacías o con existentes)
@@ -54,11 +52,9 @@ export default function AdminPredictionsForm({
     players.forEach((player) => {
       const key = player.membership_id;
       const existing = existingPredictions[key];
-      
+
       initial[key] = {
         winner: existing?.winner_pick || '',
-        second: existing?.exacta_pick?.[1] || '',
-        third: existing?.trifecta_pick?.[2] || '',
       };
     });
     setPredictions(initial);
@@ -66,14 +62,13 @@ export default function AdminPredictionsForm({
 
   const handlePredictionChange = (
     membershipId: string,
-    field: 'winner' | 'second' | 'third',
     value: string
   ) => {
     setPredictions({
       ...predictions,
       [membershipId]: {
         ...predictions[membershipId],
-        [field]: value,
+        winner: value,
       },
     });
   };
@@ -85,16 +80,11 @@ export default function AdminPredictionsForm({
     setSuccess(false);
 
     try {
-      // Validar que todas las predicciones estén completas
+      // Validar que todas las predicciones tengan ganador
       for (const player of players) {
         const pred = predictions[player.membership_id];
-        if (!pred?.winner || !pred?.second || !pred?.third) {
-          throw new Error(`Falta completar las predicciones de ${player.name}`);
-        }
-
-        // Validar que no se repitan posiciones
-        if (pred.winner === pred.second || pred.winner === pred.third || pred.second === pred.third) {
-          throw new Error(`Las posiciones de ${player.name} no pueden repetirse`);
+        if (!pred?.winner) {
+          throw new Error(`Falta seleccionar el ganador para ${player.name}`);
         }
       }
 
@@ -109,8 +99,8 @@ export default function AdminPredictionsForm({
               membership_id: membershipId,
               user_id: player?.user_id || null,
               winner_pick: pred.winner,
-              exacta_pick: [pred.winner, pred.second],
-              trifecta_pick: [pred.winner, pred.second, pred.third],
+              exacta_pick: null,
+              trifecta_pick: null,
               entered_by_admin: true,
             };
           }),
@@ -166,62 +156,22 @@ export default function AdminPredictionsForm({
               )}
             </h3>
 
-            <div className="grid grid-cols-3 gap-4">
-              {/* Winner */}
+            <div className="grid grid-cols-1 gap-4">
+              {/* Winner (only) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🥇 1° Lugar
+                  � Seleccionar Ganador
                 </label>
                 <select
                   value={predictions[player.membership_id]?.winner || ''}
-                  onChange={(e) => handlePredictionChange(player.membership_id, 'winner', e.target.value)}
+                  onChange={(e) => handlePredictionChange(player.membership_id, e.target.value)}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   required
                 >
                   <option value="">Seleccionar...</option>
                   {entries.map((entry) => (
                     <option key={entry.id} value={entry.id}>
-                      #{entry.number} {entry.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Second */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🥈 2° Lugar
-                </label>
-                <select
-                  value={predictions[player.membership_id]?.second || ''}
-                  onChange={(e) => handlePredictionChange(player.membership_id, 'second', e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  required
-                >
-                  <option value="">Seleccionar...</option>
-                  {entries.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      #{entry.number} {entry.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Third */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🥉 3° Lugar
-                </label>
-                <select
-                  value={predictions[player.membership_id]?.third || ''}
-                  onChange={(e) => handlePredictionChange(player.membership_id, 'third', e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  required
-                >
-                  <option value="">Seleccionar...</option>
-                  {entries.map((entry) => (
-                    <option key={entry.id} value={entry.id}>
-                      #{entry.number} {entry.label}
+                      {entry.label}
                     </option>
                   ))}
                 </select>

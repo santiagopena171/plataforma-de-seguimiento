@@ -230,6 +230,10 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
               <div className="space-y-4">
                 {races.map((race) => {
                   const raceResult = raceResults.find(r => r.race_id === race.id);
+                  // Predicciones asociadas a esta carrera (todas las predicciones pasadas al componente)
+                  const predsForRace = (predictions || []).filter((p: any) => p.race_id === race.id);
+                  // Contar predicciones únicas por membership_id o user_id
+                  const uniquePredKeys = new Set(predsForRace.map((p: any) => p.membership_id || p.user_id)).size;
                   
                   return (
                   <div
@@ -312,13 +316,18 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                             {closingRace === race.id ? 'Abriendo...' : 'Abrir Predicciones'}
                           </button>
                         ) : (
-                          <button
-                            onClick={() => handleClosePredictions(race.id)}
-                            disabled={closingRace === race.id}
-                            className="text-sm text-red-600 hover:text-red-800 font-medium disabled:opacity-50"
-                          >
-                            {closingRace === race.id ? 'Cerrando...' : 'Cerrar Predicciones'}
-                          </button>
+                          // Si ya hay predicciones (para todos los miembros) mostrar etiqueta en vez de link
+                          uniquePredKeys >= actualMembers.length ? (
+                            <span className="text-sm text-gray-500 font-medium">Predicciones Creadas</span>
+                          ) : (
+                            // Enlace para que el admin cree/ingrese predicciones para todos los miembros
+                            <Link
+                              href={`/admin/penca/${pencaSlug}/race/${race.id}/predictions`}
+                              className="text-sm text-red-600 hover:text-red-800 font-medium"
+                            >
+                              Crear Predicciones
+                            </Link>
+                          )
                         )}
                         
                         {/* Botón para publicar resultado */}

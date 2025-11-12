@@ -176,9 +176,10 @@ async function calculateScores(
       }
     }
 
-    // Top 3 points (any horse in top 3, regardless of order)
-    if (modalities.includes('top3')) {
-      breakdown.top3 = []
+    // Place points (Top 4) — award points depending on finishing position of picked horses
+    // Support legacy 'top3' flag too for backwards compatibility
+    if (modalities.includes('place') || modalities.includes('top3')) {
+      breakdown.place = []
       const picks = [
         prediction.winner_pick,
         ...(prediction.exacta_pick || []),
@@ -187,16 +188,20 @@ async function calculateScores(
 
       for (const pick of picks) {
         if (pick === officialOrder[0]) {
-          breakdown.top3.push(pointsTop3.first)
+          breakdown.place.push(pointsTop3.first)
           totalPoints += pointsTop3.first
         } else if (pick === officialOrder[1]) {
-          breakdown.top3.push(pointsTop3.second)
+          breakdown.place.push(pointsTop3.second)
           totalPoints += pointsTop3.second
         } else if (pick === officialOrder[2]) {
-          breakdown.top3.push(pointsTop3.third)
+          breakdown.place.push(pointsTop3.third)
           totalPoints += pointsTop3.third
+        } else if (officialOrder[3] && pick === officialOrder[3]) {
+          // fourth place (if ruleset defines it)
+          breakdown.place.push(pointsTop3.fourth || 0)
+          totalPoints += pointsTop3.fourth || 0
         } else {
-          breakdown.top3.push(0)
+          breakdown.place.push(0)
         }
       }
     }
