@@ -85,17 +85,14 @@ export default async function PublicPencaPage({ params }: PageProps) {
     .select(`
       *,
       profiles:user_id (
-        display_name,
-        full_name,
-        email
+        display_name
       )
     `)
     .eq('penca_id', penca.id);
 
+  const baseMemberships = memberships || [];
   const membershipUserIds = new Set(
-    (memberships || [])
-      .map((m: any) => m.user_id)
-      .filter(Boolean)
+    baseMemberships.map((m: any) => m.user_id).filter(Boolean)
   );
 
   const scoreUserIds = Array.from(
@@ -108,13 +105,46 @@ export default async function PublicPencaPage({ params }: PageProps) {
   if (missingProfileIds.length > 0) {
     const { data: fetchedProfiles } = await supabaseAdmin
       .from('profiles')
-      .select('id, display_name, full_name, email')
+      .select('id, display_name')
       .in('id', missingProfileIds);
     extraProfiles = fetchedProfiles || [];
   }
 
+  const referencedMembershipIds = Array.from(
+    new Set((scores || []).map((s: any) => s.membership_id).filter(Boolean))
+  );
+  const existingMembershipIds = new Set(baseMemberships.map((m: any) => m.id));
+  const missingMembershipIds = referencedMembershipIds.filter(
+    (id) => id && !existingMembershipIds.has(id)
+  );
+
+  let extraMemberships: any[] = [];
+  if (missingMembershipIds.length > 0) {
+    const { data: fetchedMemberships } = await supabaseAdmin
+      .from('memberships')
+      .select(`
+        *,
+        profiles:user_id (
+          display_name
+        )
+      `)
+      .in('id', missingMembershipIds);
+    extraMemberships = fetchedMemberships || [];
+  }
+
+  const allMemberships = [
+    ...baseMemberships,
+    ...extraMemberships.filter((m: any) => !existingMembershipIds.has(m.id)),
+  ];
+
+  allMemberships.forEach((m: any) => {
+    if (m.user_id) {
+      membershipUserIds.add(m.user_id);
+    }
+  });
+
   const profilesMap = new Map<string, any>();
-  (memberships || []).forEach((m: any) => {
+  allMemberships.forEach((m: any) => {
     if (m.user_id && m.profiles) {
       profilesMap.set(m.user_id, m.profiles);
     }
@@ -123,8 +153,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
     profilesMap.set(profile.id, profile);
   });
 
-  const getProfileName = (profile?: any) =>
-    profile?.display_name || profile?.full_name || profile?.email || null;
+  const getProfileName = (profile?: any) => profile?.display_name || null;
 
   const getBestName = (membership?: any, userId?: string | null) =>
     membership?.guest_name ||
@@ -140,7 +169,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
   }> = {};
 
   // Inicializar con memberships (asegurar aparecen aunque no tengan scores)
-  (memberships || []).forEach((m: any) => {
+  allMemberships.forEach((m: any) => {
     const id = m.id;
     const name = getBestName(m, m.user_id) || 'Sin nombre';
     playerScores[id] = { name, totalPoints: 0, races: 0, userId: m.user_id };
@@ -196,7 +225,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
     .sort((a, b) => b.totalPoints - a.totalPoints);
 
   // If we have memberships data, prefer the assigned guest_name/display_name
-  const membershipsMap = new Map((memberships || []).map((m: any) => [m.id, m]));
+  const membershipsMap = new Map(allMemberships.map((m: any) => [m.id, m]));
 
   const leaderboardCards = leaderboard.map((p, index) => {
     const mem = membershipsMap.get(p.id);
@@ -225,8 +254,8 @@ export default async function PublicPencaPage({ params }: PageProps) {
       pencaId: penca?.id,
       racesCount: races?.length || 0,
       raceIds: raceIds || [],
-      membershipsCount: (memberships || []).length,
-      membershipIds: (memberships || []).slice(0, 5).map((m: any) => m.id),
+      membershipsCount: allMemberships.length,
+      membershipIds: allMemberships.slice(0, 5).map((m: any) => m.id),
       scoresCount: (scores || []).length,
       scoreSample: (scores || []).slice(0, 5).map((s: any) => ({ id: s.id, race_id: s.race_id, membership_id: s.membership_id, user_id: s.user_id })),
     });
@@ -267,7 +296,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
         <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white rounded-lg shadow p-4 text-center">
             <p className="text-sm text-gray-500">Miembros</p>
-            <p className="text-2xl font-bold text-gray-900">{(memberships || []).length}</p>
+            <p className="text-2xl font-bold text-gray-900">{allMemberships.length}</p>
           </div>
           <div className="bg-white rounded-lg shadow p-4 text-center">
             <p className="text-sm text-gray-500">Carreras</p>
