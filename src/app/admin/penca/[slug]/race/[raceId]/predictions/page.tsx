@@ -1,4 +1,5 @@
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { redirect, notFound } from 'next/navigation';
 import AdminPredictionsForm from '@/components/AdminPredictionsForm';
@@ -50,40 +51,83 @@ export default async function AdminPredictionsPage({ params }: PageProps) {
     notFound();
   }
 
-  // Obtener participantes de la carrera
-  const { data: participants } = await supabase
+  // Obtener el penca ID
+  const pencaId = race.pencas.id;
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
+
+  const { data: participants, error: participantsError } = await adminClient
     .from('race_entries')
     .select('*')
     .eq('race_id', params.raceId)
     .order('program_number', { ascending: true });
 
-  // Obtener jugadores de la penca (usuarios registrados + guests)
-  const { data: memberships } = await supabase
+  // Obtener jugadores de la penca (usuarios registrados + guests, sin admin)
+  const { data: memberships, error: membershipsError } = await adminClient
     .from('memberships')
     .select(`
       id,
+      penca_id,
       user_id,
       guest_name,
-      profiles (
-        id,
-        display_name,
-        full_name,
-        email
-      )
+      role
     `)
-    .eq('penca_id', race.pencas.id)
-    .eq('status', 'active');
+    .eq('penca_id', pencaId);
+
+  console.log('All memberships for penca:', memberships);
+  console.log('Penca ID:', pencaId);
+  console.log('Memberships error:', membershipsError);
+
+  // Obtener nombres de usuario para no-guests
+  let userProfiles: Record<string, any> = {};
+  const userIds = memberships?.filter((m: any) => m.user_id)?.map((m: any) => m.user_id) || [];
+  
+  console.log('User IDs to fetch:', userIds);
+  
+  if (userIds.length > 0) {
+    const { data: profiles } = await adminClient
+      .from('profiles')
+      .select('id, email, full_name')
+      .in('id', userIds);
+    
+    console.log('Fetched profiles:', profiles);
+    
+    profiles?.forEach((p: any) => {
+      userProfiles[p.id] = p;
+    });
+  }
+
+  // Filtrar solo los que no son admin
+  const filteredMemberships = memberships?.filter((m: any) => m.role !== 'admin') || [];
+  console.log('Filtered memberships (non-admin):', filteredMemberships);
 
   // Formatear jugadores: puede ser usuario registrado o guest
-  const players = memberships?.map((m: any) => ({
-    membership_id: m.id,
-    user_id: m.user_id,
-    name: m.guest_name || m.profiles?.display_name || m.profiles?.full_name || m.profiles?.email || 'Sin nombre',
-    is_guest: !m.user_id,
-  })) || [];
+  const players = filteredMemberships?.map((m: any) => {
+    let name = 'Usuario';
+    if (m.guest_name) {
+      name = m.guest_name;
+    } else if (m.user_id && userProfiles[m.user_id]) {
+      const profile = userProfiles[m.user_id];
+      name = profile.full_name || profile.email || 'Usuario registrado';
+    }
+    return {
+      membership_id: m.id,
+      user_id: m.user_id,
+      name: name,
+      is_guest: !m.user_id,
+    };
+  }) || [];
 
   // Obtener predicciones existentes
-  const { data: existingPredictions } = await supabase
+  const { data: existingPredictions } = await adminClient
     .from('predictions')
     .select('*')
     .eq('race_id', params.raceId);
@@ -100,6 +144,13 @@ export default async function AdminPredictionsPage({ params }: PageProps) {
       };
     }
   });
+
+  const entries =
+    participants?.map((entry: any) => ({
+      id: entry.id,
+      number: entry.program_number,
+      label: `#${entry.program_number} - ${entry.horse_name}${entry.jockey ? ` (${entry.jockey})` : ''}`,
+    })) || [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -126,12 +177,12 @@ export default async function AdminPredictionsPage({ params }: PageProps) {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {participants && participants.length > 0 ? (
+        {entries.length > 0 ? (
           <AdminPredictionsForm
             raceId={params.raceId}
             pencaSlug={params.slug}
             players={players}
-            entries={participants}
+            entries={entries}
             existingPredictions={predictionsMap}
           />
         ) : (
