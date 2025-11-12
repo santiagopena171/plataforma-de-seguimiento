@@ -112,6 +112,7 @@ export default async function PencaPage({ params }: PencaPageProps) {
     .from('memberships')
     .select(`
       user_id,
+      guest_name,
       profiles (
         display_name
       )
@@ -131,7 +132,7 @@ export default async function PencaPage({ params }: PencaPageProps) {
 
       return {
         user_id: member.user_id,
-        display_name: (member.profiles as any)?.display_name || 'Usuario',
+        display_name: (member.profiles as any)?.display_name || member.guest_name || 'Usuario',
         total_points: totalPoints,
       };
     })
@@ -458,7 +459,7 @@ export default async function PencaPage({ params }: PencaPageProps) {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            {player.display_name}
+                            {player.display_name || player.guest_name || 'Sin nombre'}
                             {isCurrentUser && (
                               <span className="ml-2 text-xs text-blue-600 font-semibold">(Tú)</span>
                             )}

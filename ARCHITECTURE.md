@@ -12,7 +12,8 @@
 │  Next.js 14 (App Router) + TypeScript + Tailwind CSS                   │
 │                                                                          │
 │  📄 Landing Page (✅)                                                    │
-│     - Hero + Features + How It Works + Disclaimer                       │
+│     - Minimal launcher: input de búsqueda por slug + botón "Buscar Penca" │
+│       Navbar: "Iniciar sesión" / "Registrarse" · Disclaimer en footer  │
 │                                                                          │
 │  🔐 Auth Pages (⏳ Por implementar)                                      │
 │     - Login / Signup / Reset Password                                   │
@@ -373,7 +374,7 @@ Orden sugerido:
    └─ Form 1-2-3, ver scores calculados
 
 7. Player: Ver Penca (1 día)
-   └─ Tabs: Reglas, Carreras, Leaderboard, Participantes
+   └─ Tabs: Reglas, Carreras, Leaderboard, Caballos
 
 8. Player: Hacer Pronósticos (2-3 días)
    └─ Form con countdown, validaciones, confirmación

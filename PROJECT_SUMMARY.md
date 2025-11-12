@@ -10,7 +10,7 @@
 - ✅ `penca_admins` - Co-administradores por penca
 - ✅ `rulesets` - Reglas versionadas por penca
 - ✅ `races` - Carreras individuales
-- ✅ `race_entries` - Participantes (caballos) por carrera
+- ✅ `race_entries` - Caballos por carrera
 - ✅ `memberships` - Jugadores que se unieron a pencas
 - ✅ `invites` - Códigos de invitación
 - ✅ `predictions` - Pronósticos de usuarios
@@ -59,7 +59,7 @@
 
 2. ✅ **add-race-batch**
    - Admins de penca
-   - Crea múltiples carreras con participantes
+   - Crea múltiples carreras con caballos
    - Validación de permisos
 
 3. ✅ **close-predictions**
@@ -122,12 +122,10 @@
 - ✅ App Router configurado
 - ✅ Tailwind CSS setup
 - ✅ Layout base con metadata
-- ✅ Landing page completa con:
-  - Hero section
-  - **Disclaimer legal prominente**
-  - Características principales
-  - Flujo "Cómo funciona"
-  - Footer
+- - ✅ Landing page (minimal launcher) con:
+   - Input central para buscar una `penca` por slug ("Buscar Penca")
+   - Navbar con enlaces "Iniciar sesión" y "Registrarse"
+   - Footer con disclaimer legal (no hay hero/marketing en esta versión)
 
 **Librerías Cliente Supabase**:
 - ✅ `client.ts` - Cliente para componentes
@@ -150,7 +148,7 @@
 - ✅ 1 penca de prueba ("Penca de Prueba")
 - ✅ 1 ruleset activo
 - ✅ 3 carreras programadas (1 hora de separación)
-- ✅ 8-10 participantes por carrera
+- ✅ 8-10 caballos por carrera
 - ✅ 4 predicciones de ejemplo
 - ✅ 1 código de invitación: `TESTCODE123`
 
@@ -253,7 +251,7 @@
 - Canales por penca
 
 ✅ **Disclaimer legal**
-- En landing page (sección destacada)
+- En footer de la landing y en el footer de todas las páginas
 - Footer en todas las páginas
 - README
 

@@ -149,7 +149,7 @@ SELECT * FROM profiles WHERE id = '00000000-0000-0000-0000-000000000001';
 plataforma-de-seguimiento/
 ├── src/
 │   ├── app/              # Next.js App Router
-│   │   ├── page.tsx      # Landing page
+│   │   ├── page.tsx      # Landing (simple launcher: buscar penca por slug)
 │   │   └── layout.tsx    # Root layout
 │   ├── components/        # Componentes React (a implementar)
 │   ├── lib/
