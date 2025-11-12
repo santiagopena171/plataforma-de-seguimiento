@@ -204,7 +204,7 @@ export default async function AdminPredictionsPage({ params }: PageProps) {
         ) : (
           <div className="bg-white rounded-lg shadow p-6">
             <p className="text-gray-600">
-              No hay participantes configurados para esta carrera.
+              No hay caballos configurados para esta carrera.
             </p>
           </div>
         )}

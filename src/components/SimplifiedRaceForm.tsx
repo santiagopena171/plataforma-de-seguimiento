@@ -45,7 +45,7 @@ export default function SimplifiedRaceForm({ pencaSlug, pencaId, numParticipants
 
       const newRace = await raceResponse.json();
 
-      // No crear participantes autom�ticos; redirigir a la pantalla de edici�n
+      // No crear participantes autom�ticos; redirigir a la pantalla de edici�n
       router.push(`/admin/penca/${pencaSlug}/race/${newRace.id}/edit`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -126,8 +126,8 @@ export default function SimplifiedRaceForm({ pencaSlug, pencaId, numParticipants
         {/* Info: Number of participants */}
         <div className="hidden">
           <p className="text-sm text-blue-800">
-            ℹ️ Esta carrera tendrá <strong>{numParticipants} participantes</strong> (configurado en la penca).
-            Los participantes se numerarán del 1 al {numParticipants}.
+            ℹ️ Esta carrera tendrá <strong>{numParticipants} caballos</strong> (configurado en la penca).
+            Los caballos se numerarán del 1 al {numParticipants}.
           </p>
         </div>
 

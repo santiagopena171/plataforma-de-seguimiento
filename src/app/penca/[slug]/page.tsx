@@ -271,7 +271,7 @@ export default async function PencaPage({ params }: PencaPageProps) {
                   {/* Horse Entries */}
                   {race.race_entries && race.race_entries.length > 0 && (
                     <div className="mb-4">
-                      <h4 className="font-semibold text-gray-900 mb-2">Participantes:</h4>
+                      <h4 className="font-semibold text-gray-900 mb-2">Caballos:</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {race.race_entries
                           .sort((a: any, b: any) => a.program_number - b.program_number)
@@ -419,7 +419,7 @@ export default async function PencaPage({ params }: PencaPageProps) {
           
           {leaderboardWithPoints.length === 0 ? (
             <div className="p-6 text-center text-gray-600">
-              No hay participantes todavía
+              No hay caballos todavía
             </div>
           ) : (
             <div className="overflow-x-auto">

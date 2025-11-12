@@ -46,6 +46,18 @@ export default async function PublicPencaPage({ params }: PageProps) {
     .select('*')
     .in('race_id', raceIds);
 
+  // Obtener entradas para todas las carreras listadas (para mostrar número de programa)
+  const { data: allEntries } = await supabase
+    .from('race_entries')
+    .select('id, program_number, race_id')
+    .in('race_id', raceIds);
+
+  const entriesByRace: Record<string, Record<string, any>> = {};
+  (allEntries || []).forEach((e: any) => {
+    if (!entriesByRace[e.race_id]) entriesByRace[e.race_id] = {};
+    entriesByRace[e.race_id][e.id] = e;
+  });
+
   // Mapear resultados por race_id
   const resultsMap: Record<string, any> = {};
   raceResults?.forEach((result: any) => {
@@ -216,13 +228,13 @@ export default async function PublicPencaPage({ params }: PageProps) {
                         {result && (
                           <div className="mt-3 flex gap-4 text-sm">
                             <span className="text-gray-700">
-                              🥇 1°: <span className="font-medium">#{result.first_place}</span>
+                              🥇 1°: <span className="font-medium">#{(entriesByRace[race.id] && entriesByRace[race.id][result.first_place]?.program_number) || result.first_place}</span>
                             </span>
                             <span className="text-gray-700">
-                              🥈 2°: <span className="font-medium">#{result.second_place}</span>
+                              🥈 2°: <span className="font-medium">#{(entriesByRace[race.id] && entriesByRace[race.id][result.second_place]?.program_number) || result.second_place}</span>
                             </span>
                             <span className="text-gray-700">
-                              🥉 3°: <span className="font-medium">#{result.third_place}</span>
+                              🥉 3°: <span className="font-medium">#{(entriesByRace[race.id] && entriesByRace[race.id][result.third_place]?.program_number) || result.third_place}</span>
                             </span>
                           </div>
                         )}

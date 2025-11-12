@@ -131,7 +131,7 @@ export default function HomePage() {
             />
             <Step
               number={3}
-              title="Carga Carreras y Participantes"
+              title="Carga Carreras y Caballos"
               description="Agrega las carreras con fecha/hora y los caballos que competirán. Genera un código de invitación."
             />
             <Step

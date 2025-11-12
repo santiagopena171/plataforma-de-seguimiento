@@ -34,7 +34,7 @@ export async function PATCH(
     // Validar
     if (!num_participants || num_participants < 3) {
       return NextResponse.json(
-        { error: 'Número de participantes debe ser mínimo 3' },
+        { error: 'Número de caballos debe ser mínimo 3' },
         { status: 400 }
       );
     }

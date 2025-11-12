@@ -136,7 +136,7 @@ export default function EditRacePage() {
         throw new Error(error.error || 'Error al actualizar carrera');
       }
 
-      // Actualizar participantes solo con número (sin nombre ni jockey)
+  // Actualizar caballos solo con número (sin nombre ni jockey)
       const horsesRes = await fetch(`/api/admin/races/${raceId}/entries`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -292,8 +292,8 @@ export default function EditRacePage() {
 
           {/* Caballos */}
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Participantes ({horses.length})</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Caballos ({horses.length})</h2>
               <button
                 type="button"
                 onClick={addHorse}

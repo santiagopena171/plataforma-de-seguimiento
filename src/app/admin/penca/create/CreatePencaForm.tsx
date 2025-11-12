@@ -112,7 +112,7 @@ export default function CreatePencaForm({ userId }: CreatePencaFormProps) {
           required
         />
         <p className="text-sm text-gray-500 mt-1">
-          Nombre público que verán los participantes
+          Nombre público que verán los caballos
         </p>
       </div>
 
@@ -155,7 +155,7 @@ export default function CreatePencaForm({ userId }: CreatePencaFormProps) {
           className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
         <p className="text-sm text-gray-500 mt-1">
-          Opcional: Agrega una descripción para los participantes
+          Opcional: Agrega una descripción para los caballos
         </p>
       </div>
 

@@ -509,7 +509,8 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                 {actualMembers
                   .map((member) => {
                     // Calcular puntos totales del miembro desde scores
-                    const memberScores = scores?.filter((s: Score) => s.user_id === member.user_id) || [];
+                    // Soportar tanto scores por user_id como por membership_id (invitados/guest)
+                    const memberScores = scores?.filter((s: Score) => (s.user_id && s.user_id === member.user_id) || (s as any).membership_id === member.id) || [];
                     const totalPoints = memberScores.reduce((sum, score) => sum + (score.points_total || 0), 0);
                     return { member, totalPoints };
                   })
@@ -555,8 +556,9 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                           <div className="space-y-4">
                             {races.map((race) => {
                               // Obtener la predicción y el score del miembro para esta carrera
-                              const memberRaceScore = scores.find(s => s.user_id === member.user_id && s.race_id === race.id);
-                              const memberPrediction = predictions.find(p => p.user_id === member.user_id && p.race_id === race.id);
+                              // Encontrar score/ prediction por user_id o por membership_id (invitados)
+                              const memberRaceScore = scores.find(s => ((s.user_id && s.user_id === member.user_id) || (s as any).membership_id === member.id) && s.race_id === race.id);
+                              const memberPrediction = predictions.find(p => ((p.user_id && p.user_id === member.user_id) || (p as any).membership_id === member.id) && p.race_id === race.id);
                               const raceResult = raceResults.find(r => r.race_id === race.id);
                               
                               return (

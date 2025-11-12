@@ -74,7 +74,7 @@ export default async function RacePreviewPage({
               </h1>
             </div>
             <div className="text-sm text-gray-600">
-              (Esta es la vista que ven los participantes)
+              (Esta es la vista que ven los caballos)
             </div>
           </div>
         </div>
@@ -108,7 +108,7 @@ export default async function RacePreviewPage({
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900">
-              Participantes ({entries?.length || 0})
+              Caballos ({entries?.length || 0})
             </h2>
           </div>
 

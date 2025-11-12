@@ -36,7 +36,7 @@ export async function GET(
     const normalized =
       data?.map((entry: any) => ({
         ...entry,
-        horse_name: entry.label ?? entry.horse_name ?? `Participante ${entry.program_number}`,
+        horse_name: entry.label ?? entry.horse_name ?? `Caballo ${entry.program_number}`,
       })) || [];
 
     return NextResponse.json(normalized);
@@ -94,7 +94,7 @@ export async function PUT(
     const existingIds = new Set(existingEntries?.map((e: any) => e.id) || []);
     const newIds = new Set(body.entries.filter((e: RaceEntry) => e.id && !e.id.startsWith('new-')).map((e: RaceEntry) => e.id));
 
-    // Eliminar caballos que no estÃ¡n en la lista nueva
+  // Eliminar caballos que no están en la lista nueva
   const toDelete = Array.from(existingIds).filter((id: string) => !newIds.has(id));
     if (toDelete.length > 0) {
       const { error: deleteError } = await supabase
@@ -104,13 +104,13 @@ export async function PUT(
       if (deleteError) throw deleteError;
     }
 
-    // Insertar o actualizar participantes usando solo el número y una etiqueta opcional
+  // Insertar o actualizar caballos usando solo el número y una etiqueta opcional
     for (const entry of body.entries as RaceEntry[]) {
       const number = entry.program_number;
       const labelValue =
         (entry.horse_name && entry.horse_name.trim()) ||
         (entry.label && entry.label.trim()) ||
-        `Participante ${number}`;
+        `Caballo ${number}`;
 
       const entryData = {
         race_id: params.raceId,
@@ -133,7 +133,7 @@ export async function PUT(
         if (error) throw error;
       }
     }
-    // Retornar los participantes actualizados
+  // Retornar los caballos actualizados
     const { data: updated } = await supabase
       .from('race_entries')
       .select('*')
@@ -143,7 +143,7 @@ export async function PUT(
     const normalizedUpdated =
       updated?.map((entry: any) => ({
         ...entry,
-        horse_name: entry.label ?? entry.horse_name ?? `Participante ${entry.program_number}`,
+        horse_name: entry.label ?? entry.horse_name ?? `Caballo ${entry.program_number}`,
       })) || [];
 
     return NextResponse.json(normalizedUpdated);
@@ -152,12 +152,12 @@ export async function PUT(
     const anyErr: any = err;
     if (anyErr && (anyErr.code === '23505' || (anyErr.message || '').includes('duplicate key'))){
       return NextResponse.json(
-        { error: 'Hay nÃºmeros duplicados en los participantes' },
+        { error: 'Hay números duplicados en los caballos' },
         { status: 400 }
       );
     }
     return NextResponse.json(
-      { error: 'Error al actualizar los participantes' },
+      { error: 'Error al actualizar los caballos' },
       { status: 500 }
     );
   }

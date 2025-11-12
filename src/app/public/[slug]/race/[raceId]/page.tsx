@@ -1,5 +1,5 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
+import { createServiceRoleClient } from '@/lib/supabase/client';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
@@ -11,7 +11,9 @@ interface PageProps {
 }
 
 export default async function PublicRaceDetailPage({ params }: PageProps) {
-  const supabase = createServerComponentClient({ cookies });
+  // Use the service role client on the server-side to bypass RLS for public
+  // read-only pages that should show published results to unauthenticated users.
+  const supabase = createServiceRoleClient();
 
   // Obtener la penca
   const { data: penca } = await supabase
@@ -48,7 +50,7 @@ export default async function PublicRaceDetailPage({ params }: PageProps) {
     .from('race_entries')
     .select('*')
     .eq('race_id', params.raceId)
-    .order('number', { ascending: true });
+    .order('program_number', { ascending: true });
 
   // Crear mapa de entradas
   const entriesMap: Record<string, any> = {};
