@@ -96,17 +96,46 @@ export async function calculateScores(
       }
     }
 
-    // Use upsert to preserve compatibility, but the DB unique key is (race_id, user_id)
-    await supabaseClient.from('scores').upsert({
+    // Persist scores: prefer updating existing row by membership_id (for guests) or user_id.
+    // Using update-then-insert avoids creating duplicates when user_id is NULL (unique constraints allow multiple NULLs).
+    const scoreRow = {
       penca_id: pencaId,
       race_id: raceId,
       user_id: prediction.user_id,
       membership_id: prediction.membership_id || null,
       points_total: totalPoints,
       breakdown,
-    }, {
-      onConflict: 'race_id,user_id'
-    })
+    };
+
+    if (prediction.membership_id) {
+      const { data: updated, error: updateError } = await supabaseClient
+        .from('scores')
+        .update(scoreRow)
+        .eq('race_id', raceId)
+        .eq('membership_id', prediction.membership_id)
+        .select();
+
+      if (updateError) {
+        // try insert as fallback
+        await supabaseClient.from('scores').insert(scoreRow);
+      } else if (!updated || updated.length === 0) {
+        await supabaseClient.from('scores').insert(scoreRow);
+      }
+    } else {
+      // fallback to user_id-based matching
+      const { data: updated, error: updateError } = await supabaseClient
+        .from('scores')
+        .update(scoreRow)
+        .eq('race_id', raceId)
+        .eq('user_id', prediction.user_id)
+        .select();
+
+      if (updateError) {
+        await supabaseClient.from('scores').insert(scoreRow);
+      } else if (!updated || updated.length === 0) {
+        await supabaseClient.from('scores').insert(scoreRow);
+      }
+    }
   }
 }
 

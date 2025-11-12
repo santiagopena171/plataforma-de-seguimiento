@@ -334,7 +334,7 @@ export default function EditRacePage() {
                         type="text"
                         value={horse.horse_name}
                         onChange={(e) => handleHorseChange(index, 'horse_name', e.target.value)}
-                        required
+                        // not required here because the field is hidden in this form
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                         placeholder="ej: Rápido del Sur"
                       />
@@ -349,7 +349,7 @@ export default function EditRacePage() {
                         type="text"
                         value={horse.jockey}
                         onChange={(e) => handleHorseChange(index, 'jockey', e.target.value)}
-                        required
+                        // not required here because the field is hidden in this form
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                         placeholder="ej: Juan Pérez"
                       />

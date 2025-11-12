@@ -95,7 +95,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
       };
     }
 
-    playerScores[membershipId].totalPoints += score.points || 0;
+  playerScores[membershipId].totalPoints += score.points_total || 0;
     playerScores[membershipId].races += 1;
   });
 

@@ -52,8 +52,14 @@ export default async function PublicRaceDetailPage({ params }: PageProps) {
 
   // Crear mapa de entradas
   const entriesMap: Record<string, any> = {};
+  const entriesByNumber: Record<string, any> = {};
   entries?.forEach((entry: any) => {
+    // Normalize: keep the original object but add a `number` alias for older code
+    // that expects `entry.number` (some components reference `.number`), while
+    // the DB column is `program_number`.
+    entry.number = entry.program_number;
     entriesMap[entry.id] = entry;
+    entriesByNumber[String(entry.program_number)] = entry;
   });
 
   // Obtener predicciones
@@ -89,7 +95,7 @@ export default async function PublicRaceDetailPage({ params }: PageProps) {
       )
     `)
     .eq('race_id', params.raceId)
-    .order('points', { ascending: false });
+    .order('points_total', { ascending: false });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -223,15 +229,15 @@ export default async function PublicRaceDetailPage({ params }: PageProps) {
                           {prediction ? (
                             <div className="flex gap-2 justify-center">
                               <span>
-                                #{entriesMap[prediction.winner_pick]?.number || '?'}
+                                #{(entriesMap[prediction.winner_pick]?.number || entriesByNumber[String(prediction.winner_pick)]?.program_number) || '?'}
                               </span>
                               <span>-</span>
                               <span>
-                                #{entriesMap[prediction.exacta_pick?.[1]]?.number || '?'}
+                                #{(entriesMap[prediction.exacta_pick?.[1]]?.number || entriesByNumber[String(prediction.exacta_pick?.[1])]?.program_number) || '?'}
                               </span>
                               <span>-</span>
                               <span>
-                                #{entriesMap[prediction.trifecta_pick?.[2]]?.number || '?'}
+                                #{(entriesMap[prediction.trifecta_pick?.[2]]?.number || entriesByNumber[String(prediction.trifecta_pick?.[2])]?.program_number) || '?'}
                               </span>
                             </div>
                           ) : (
@@ -239,7 +245,7 @@ export default async function PublicRaceDetailPage({ params }: PageProps) {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-center">
-                          {score.points}
+                          {score.points_total}
                         </td>
                       </tr>
                     );

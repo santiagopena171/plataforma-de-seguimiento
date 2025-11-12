@@ -134,11 +134,26 @@ export default async function AdminPredictionsPage({ params }: PageProps) {
 
   // Mapear predicciones por membership_id o user_id
   const predictionsMap: Record<string, any> = {};
+  // Build helper maps to resolve legacy predictions that stored program_number instead of entry id
+  const entryByNumber: Record<string, any> = {};
+  const entryById: Record<string, any> = {};
+  participants?.forEach((entry: any) => {
+    entryById[entry.id] = entry;
+    entryByNumber[String(entry.program_number)] = entry;
+  });
+
   existingPredictions?.forEach((pred: any) => {
     const key = pred.membership_id || pred.user_id;
     if (key) {
+      let winnerPick = pred.winner_pick;
+
+      // If winner_pick doesn't match an existing entry id, but matches a program_number, map it to the corresponding id
+      if (winnerPick && !entryById[winnerPick] && entryByNumber[String(winnerPick)]) {
+        winnerPick = entryByNumber[String(winnerPick)].id;
+      }
+
       predictionsMap[key] = {
-        winner_pick: pred.winner_pick,
+        winner_pick: winnerPick,
         exacta_pick: pred.exacta_pick,
         trifecta_pick: pred.trifecta_pick,
       };
