@@ -143,6 +143,13 @@ export default async function PublicPencaPage({ params }: PageProps) {
     }
   });
 
+  const adminMemberships = allMemberships.filter((m: any) => m.role === 'admin');
+  const adminMembershipIds = new Set(adminMemberships.map((m: any) => m.id));
+  const adminUserIds = new Set(
+    adminMemberships.map((m: any) => m.user_id).filter(Boolean)
+  );
+  const playerMemberships = allMemberships.filter((m: any) => m.role !== 'admin');
+
   const profilesMap = new Map<string, any>();
   allMemberships.forEach((m: any) => {
     if (m.user_id && m.profiles) {
@@ -169,7 +176,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
   }> = {};
 
   // Inicializar con memberships (asegurar aparecen aunque no tengan scores)
-  allMemberships.forEach((m: any) => {
+  playerMemberships.forEach((m: any) => {
     const id = m.id;
     const name = getBestName(m, m.user_id) || 'Sin nombre';
     playerScores[id] = { name, totalPoints: 0, races: 0, userId: m.user_id };
@@ -180,6 +187,9 @@ export default async function PublicPencaPage({ params }: PageProps) {
     const userId = score.user_id;
 
     if (membershipId) {
+      if (adminMembershipIds.has(membershipId)) {
+        return;
+      }
       // Si no tenemos el membership en playerScores (p. ej. memberships vacías), crear un fallback
       if (!playerScores[membershipId]) {
         const short = typeof membershipId === 'string' ? membershipId.slice(0, 6) : membershipId;
@@ -197,8 +207,11 @@ export default async function PublicPencaPage({ params }: PageProps) {
         playerScores[membershipId].userId = userId;
       }
     } else if (userId) {
+      if (adminUserIds.has(userId)) {
+        return;
+      }
       // intentar encontrar membership by user_id
-      const mem = (memberships || []).find((m: any) => m.user_id === userId);
+      const mem = playerMemberships.find((m: any) => m.user_id === userId);
       if (mem) {
         playerScores[mem.id].totalPoints += score.points_total || 0;
         playerScores[mem.id].races += 1;
@@ -225,7 +238,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
     .sort((a, b) => b.totalPoints - a.totalPoints);
 
   // If we have memberships data, prefer the assigned guest_name/display_name
-  const membershipsMap = new Map(allMemberships.map((m: any) => [m.id, m]));
+  const membershipsMap = new Map(playerMemberships.map((m: any) => [m.id, m]));
 
   const leaderboardCards = leaderboard.map((p, index) => {
     const mem = membershipsMap.get(p.id);
@@ -254,8 +267,8 @@ export default async function PublicPencaPage({ params }: PageProps) {
       pencaId: penca?.id,
       racesCount: races?.length || 0,
       raceIds: raceIds || [],
-      membershipsCount: allMemberships.length,
-      membershipIds: allMemberships.slice(0, 5).map((m: any) => m.id),
+      membershipsCount: playerMemberships.length,
+      membershipIds: playerMemberships.slice(0, 5).map((m: any) => m.id),
       scoresCount: (scores || []).length,
       scoreSample: (scores || []).slice(0, 5).map((s: any) => ({ id: s.id, race_id: s.race_id, membership_id: s.membership_id, user_id: s.user_id })),
     });
@@ -296,7 +309,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
         <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white rounded-lg shadow p-4 text-center">
             <p className="text-sm text-gray-500">Miembros</p>
-            <p className="text-2xl font-bold text-gray-900">{allMemberships.length}</p>
+            <p className="text-2xl font-bold text-gray-900">{playerMemberships.length}</p>
           </div>
           <div className="bg-white rounded-lg shadow p-4 text-center">
             <p className="text-sm text-gray-500">Carreras</p>
