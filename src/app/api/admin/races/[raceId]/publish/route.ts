@@ -105,104 +105,20 @@ export async function POST(
       console.error('Error updating race status:', updateError);
     }
 
-    // Obtener todas las predicciones para esta carrera
-    const { data: predictions, error: predError } = await supabase
-      .from('predictions')
-      .select('*')
-      .eq('race_id', raceId);
-
-    if (predError) {
-      console.error('Error fetching predictions:', predError);
-      return NextResponse.json(
-        { error: 'Error al obtener predicciones' },
-        { status: 500 }
-      );
-    }
-
-    // Calcular puntos para cada predicción
-    const pointsData = [];
-    for (const prediction of predictions || []) {
-      let points = 0;
-      const breakdown: any = {};
-
-      // Modalidad: Winner / Place (Top 4)
-      // Treat 'winner' and 'place' (and legacy 'top3') as the single-pick place modality
-      const isPlaceMode =
-        activeRuleset.modalities_enabled.includes('winner') ||
-        activeRuleset.modalities_enabled.includes('place') ||
-        activeRuleset.modalities_enabled.includes('top3');
-
-      if (isPlaceMode) {
-        if (prediction.winner_pick === firstPlace) {
-          breakdown.winner = activeRuleset.points_top3.first || 0;
-          points += activeRuleset.points_top3.first || 0;
-        } else if (prediction.winner_pick === secondPlace) {
-          breakdown.winner = activeRuleset.points_top3.second || 0;
-          points += activeRuleset.points_top3.second || 0;
-        } else if (prediction.winner_pick === thirdPlace) {
-          breakdown.winner = activeRuleset.points_top3.third || 0;
-          points += activeRuleset.points_top3.third || 0;
-        } else if (prediction.winner_pick === fourthPlace) {
-          breakdown.winner = activeRuleset.points_top3.fourth || 0;
-          points += activeRuleset.points_top3.fourth || 0;
-        }
-      }
-
-      // Modalidad: Exacta (primeros 2 en orden correcto)
-      if (activeRuleset.modalities_enabled.includes('exacta')) {
-        if (prediction.exacta_pick && Array.isArray(prediction.exacta_pick)) {
-          if (
-            prediction.exacta_pick[0] === firstPlace &&
-            prediction.exacta_pick[1] === secondPlace
-          ) {
-            breakdown.exacta = activeRuleset.points_top3.first + activeRuleset.points_top3.second;
-            points += activeRuleset.points_top3.first + activeRuleset.points_top3.second;
-          }
-        }
-      }
-
-      // Modalidad: Trifecta (primeros 3 en orden correcto)
-      if (activeRuleset.modalities_enabled.includes('trifecta')) {
-        if (prediction.trifecta_pick && Array.isArray(prediction.trifecta_pick)) {
-          if (
-            prediction.trifecta_pick[0] === firstPlace &&
-            prediction.trifecta_pick[1] === secondPlace &&
-            prediction.trifecta_pick[2] === thirdPlace
-          ) {
-            breakdown.trifecta = activeRuleset.points_top3.first + activeRuleset.points_top3.second + activeRuleset.points_top3.third;
-            points += activeRuleset.points_top3.first + activeRuleset.points_top3.second + activeRuleset.points_top3.third;
-          }
-        }
-      }
-
-      pointsData.push({
-        prediction_id: prediction.id,
-        points_earned: points,
-      });
-
-      // Actualizar los puntos en la tabla scores con el breakdown
-      // Usar membership_id si existe, sino user_id (retrocompatibilidad)
-      const { error: scoreError } = await supabase
-        .from('scores')
-        .upsert({
-          penca_id: race.penca_id,
-          race_id: raceId,
-          user_id: prediction.user_id || null,
-          membership_id: prediction.membership_id || null,
-          points: points,
-          breakdown: breakdown,
-        }, {
-          onConflict: 'race_id,user_id,membership_id'
-        });
-
-      if (scoreError) {
-        console.error('Error saving score:', { scoreError, user_id: prediction.user_id, race_id: raceId, points });
-      }
+    // Calcular puntos para cada predicción usando helper compartido
+    try {
+      const officialOrder = [firstPlace, secondPlace, thirdPlace, fourthPlace];
+      const helper = await import('../../../../../../lib/calculateScores');
+      // helper exports default and named; prefer named
+      const calculateScores = helper.calculateScores || helper.default;
+      await calculateScores(supabase, race.penca_id, raceId, officialOrder);
+    } catch (err) {
+      console.error('Error calculating scores with helper:', err);
+      return NextResponse.json({ error: 'Error al calcular puntos' }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      pointsCalculated: pointsData.length,
       message: 'Resultado publicado y puntos calculados',
     });
   } catch (error) {

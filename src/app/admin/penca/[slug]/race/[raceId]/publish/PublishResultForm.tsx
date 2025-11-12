@@ -147,7 +147,7 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
                 />
               </div>
 
-              {positions[entry.id] && positions[entry.id] <= 3 && (
+              {positions[entry.id] && positions[entry.id] <= 4 && (
                 <div className="flex-shrink-0">
                   {positions[entry.id] === 1 && (
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
@@ -162,6 +162,11 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
                   {positions[entry.id] === 3 && (
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-800">
                       🥉 {activeRuleset?.points_top3.third || 0} pts
+                    </span>
+                  )}
+                  {positions[entry.id] === 4 && (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                      4º {activeRuleset?.points_top3.fourth || 0} pts
                     </span>
                   )}
                 </div>
@@ -184,14 +189,15 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
                   <div key={entryId} className="flex justify-between items-center text-sm">
                     <span className="text-gray-700">
                       {position}° - #{entry.program_number} {entry.horse_name}
-                    </span>
-                    {position <= 3 && activeRuleset && (
-                      <span className="font-semibold text-indigo-600">
-                        {position === 1 && `${activeRuleset.points_top3.first} puntos`}
-                        {position === 2 && `${activeRuleset.points_top3.second} puntos`}
-                        {position === 3 && `${activeRuleset.points_top3.third} puntos`}
                       </span>
-                    )}
+                      {position <= 4 && activeRuleset && (
+                        <span className="font-semibold text-indigo-600">
+                          {position === 1 && `${activeRuleset.points_top3.first} puntos`}
+                          {position === 2 && `${activeRuleset.points_top3.second} puntos`}
+                          {position === 3 && `${activeRuleset.points_top3.third} puntos`}
+                          {position === 4 && `${activeRuleset.points_top3.fourth || 0} puntos`}
+                        </span>
+                      )}
                   </div>
                 );
               })}
