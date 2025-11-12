@@ -164,16 +164,18 @@ export async function POST(
       });
 
       // Actualizar los puntos en la tabla scores con el breakdown
+      // Usar membership_id si existe, sino user_id (retrocompatibilidad)
       const { error: scoreError } = await supabase
         .from('scores')
         .upsert({
           penca_id: race.penca_id,
           race_id: raceId,
-          user_id: prediction.user_id,
-          points_total: points,
+          user_id: prediction.user_id || null,
+          membership_id: prediction.membership_id || null,
+          points: points,
           breakdown: breakdown,
         }, {
-          onConflict: 'race_id,user_id'
+          onConflict: 'race_id,user_id,membership_id'
         });
 
       if (scoreError) {

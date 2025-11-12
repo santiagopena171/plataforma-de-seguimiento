@@ -50,9 +50,7 @@ export default async function PublishResultPage({ params }: PageProps) {
       race_entries (
         id,
         program_number,
-        horse_name,
-        jockey,
-        trainer
+        horse_name:label
       )
     `)
     .eq('id', params.raceId)

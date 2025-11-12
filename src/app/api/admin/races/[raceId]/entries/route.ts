@@ -1,15 +1,12 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+﻿import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RaceEntry {
   id: string;
   program_number: number;
-  horse_name: string;
-  jockey: string;
-  trainer?: string | null;
-  stud?: string | null;
-  notes?: string | null;
+  horse_name?: string;
+  label?: string | null;
 }
 
 export async function GET(
@@ -18,7 +15,7 @@ export async function GET(
 ) {
   const supabase = createServerComponentClient({ cookies });
 
-  // Verificar autenticación
+  // Verificar autenticaciÃ³n
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -36,7 +33,13 @@ export async function GET(
 
     if (error) throw error;
 
-    return NextResponse.json(data);
+    const normalized =
+      data?.map((entry: any) => ({
+        ...entry,
+        horse_name: entry.label ?? entry.horse_name ?? `Participante ${entry.program_number}`,
+      })) || [];
+
+    return NextResponse.json(normalized);
   } catch (err) {
     console.error('Error fetching race entries:', err);
     return NextResponse.json(
@@ -52,7 +55,7 @@ export async function PUT(
 ) {
   const supabase = createServerComponentClient({ cookies });
 
-  // Verificar autenticación
+  // Verificar autenticaciÃ³n
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -91,7 +94,7 @@ export async function PUT(
     const existingIds = new Set(existingEntries?.map((e: any) => e.id) || []);
     const newIds = new Set(body.entries.filter((e: RaceEntry) => e.id && !e.id.startsWith('new-')).map((e: RaceEntry) => e.id));
 
-    // Eliminar caballos que no están en la lista nueva
+    // Eliminar caballos que no estÃ¡n en la lista nueva
   const toDelete = Array.from(existingIds).filter((id: string) => !newIds.has(id));
     if (toDelete.length > 0) {
       const { error: deleteError } = await supabase
@@ -101,16 +104,18 @@ export async function PUT(
       if (deleteError) throw deleteError;
     }
 
-    // Insertar o actualizar caballos
+    // Insertar o actualizar participantes usando solo el número y una etiqueta opcional
     for (const entry of body.entries as RaceEntry[]) {
+      const number = entry.program_number;
+      const labelValue =
+        (entry.horse_name && entry.horse_name.trim()) ||
+        (entry.label && entry.label.trim()) ||
+        `Participante ${number}`;
+
       const entryData = {
         race_id: params.raceId,
-        program_number: entry.program_number,
-        horse_name: entry.horse_name,
-        jockey: entry.jockey,
-        trainer: entry.trainer || null,
-        stud: entry.stud || null,
-        notes: entry.notes || null,
+        program_number: number,
+        label: labelValue,
       };
 
       if (entry.id && !entry.id.startsWith('new-')) {
@@ -128,20 +133,35 @@ export async function PUT(
         if (error) throw error;
       }
     }
-
-    // Retornar los caballos actualizados
+    // Retornar los participantes actualizados
     const { data: updated } = await supabase
       .from('race_entries')
       .select('*')
       .eq('race_id', params.raceId)
       .order('program_number', { ascending: true });
 
-    return NextResponse.json(updated);
+    const normalizedUpdated =
+      updated?.map((entry: any) => ({
+        ...entry,
+        horse_name: entry.label ?? entry.horse_name ?? `Participante ${entry.program_number}`,
+      })) || [];
+
+    return NextResponse.json(normalizedUpdated);
   } catch (err) {
     console.error('Error updating race entries:', err);
+    const anyErr: any = err;
+    if (anyErr && (anyErr.code === '23505' || (anyErr.message || '').includes('duplicate key'))){
+      return NextResponse.json(
+        { error: 'Hay nÃºmeros duplicados en los participantes' },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
-      { error: 'Error al actualizar los caballos' },
+      { error: 'Error al actualizar los participantes' },
       { status: 500 }
     );
   }
 }
+
+
+

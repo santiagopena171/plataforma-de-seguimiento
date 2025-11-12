@@ -31,10 +31,10 @@ export async function POST(
   try {
     const body = await req.json();
 
-    // Validar campos requeridos
-    if (!body.seq || !body.venue || !body.distance_m || !body.start_at) {
+    // Validar campos requeridos (seq es opcional: lo calculamos si falta)
+    if (!body.venue || !body.distance_m || !body.start_at) {
       return NextResponse.json(
-        { error: 'Campos requeridos: seq, venue, distance_m, start_at' },
+        { error: 'Campos requeridos: venue, distance_m, start_at' },
         { status: 400 }
       );
     }
@@ -50,13 +50,41 @@ export async function POST(
       return NextResponse.json({ error: 'Penca no encontrada' }, { status: 404 });
     }
 
+    // Choose seq: use requested if available, else next available for this penca
+    let seq: number | null = null;
+    const requestedSeq: number | undefined =
+      typeof body.seq === 'number' ? body.seq : (body.seq ? parseInt(body.seq, 10) : undefined);
+
+    if (requestedSeq && requestedSeq > 0) {
+      const { data: existing } = await supabase
+        .from('races')
+        .select('id')
+        .eq('penca_id', penca.id)
+        .eq('seq', requestedSeq)
+        .maybeSingle();
+      if (!existing) {
+        seq = requestedSeq;
+      }
+    }
+
+    if (seq === null) {
+      const { data: lastRace } = await supabase
+        .from('races')
+        .select('seq')
+        .eq('penca_id', penca.id)
+        .order('seq', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      seq = (lastRace?.seq ?? 0) + 1;
+    }
+
     // Crear carrera
     const { data, error } = await supabase
       .from('races')
       .insert([
         {
           penca_id: penca.id,
-          seq: body.seq,
+          seq,
           venue: body.venue,
           distance_m: body.distance_m,
           start_at: body.start_at,
@@ -86,3 +114,4 @@ export async function POST(
     );
   }
 }
+

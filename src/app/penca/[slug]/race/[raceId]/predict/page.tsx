@@ -35,9 +35,7 @@ export default async function PredictRacePage({ params }: PredictPageProps) {
       race_entries (
         id,
         program_number,
-        horse_name,
-        jockey,
-        trainer
+        horse_name:label
       )
     `)
     .eq('id', params.raceId)

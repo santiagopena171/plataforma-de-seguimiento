@@ -70,17 +70,11 @@ export default async function PencaPage({ params }: PencaPageProps) {
       race_entries (
         id,
         program_number,
-        horse_name,
-        jockey,
-        trainer,
-        stud,
-        notes
+        horse_name:label
       )
     `)
     .eq('penca_id', penca.id)
     .order('start_at', { ascending: true });
-
-  console.log('Races query result:', { races, racesError, pencaId: penca.id });
 
   // Obtener predicciones del usuario
   const { data: predictions } = await supabase
@@ -90,7 +84,7 @@ export default async function PencaPage({ params }: PencaPageProps) {
       winner_entry:race_entries!predictions_winner_pick_fkey (
         id,
         program_number,
-        horse_name
+        horse_name:label
       )
     `)
     .eq('user_id', session.user.id)

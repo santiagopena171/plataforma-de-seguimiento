@@ -107,7 +107,7 @@ export default function EditRacePage() {
         horse_name: '',
         jockey: '',
       },
-    ]);
+      ]);
   };
 
   const removeHorse = (index: number) => {
@@ -136,11 +136,18 @@ export default function EditRacePage() {
         throw new Error(error.error || 'Error al actualizar carrera');
       }
 
-      // Actualizar caballos
+      // Actualizar participantes solo con número (sin nombre ni jockey)
       const horsesRes = await fetch(`/api/admin/races/${raceId}/entries`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entries: horses }),
+        body: JSON.stringify({
+          entries: horses.map((h: Horse) => ({
+            id: h.id,
+            program_number: h.program_number,
+            horse_name: '',
+            jockey: '',
+          })),
+        }),
       });
 
       if (!horsesRes.ok) {
@@ -286,18 +293,18 @@ export default function EditRacePage() {
           {/* Caballos */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Caballos ({horses.length})</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Participantes ({horses.length})</h2>
               <button
                 type="button"
                 onClick={addHorse}
                 className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700"
               >
-                + Agregar caballo
+                + Agregar número
               </button>
             </div>
 
             {horses.length === 0 ? (
-              <p className="text-gray-600 text-sm">No hay caballos agregados</p>
+              <p className="text-gray-600 text-sm">No hay números agregados</p>
             ) : (
               <div className="space-y-4">
                 {horses.map((horse, index) => (
@@ -319,7 +326,7 @@ export default function EditRacePage() {
                     </div>
 
                     {/* Nombre del caballo */}
-                    <div className="flex-[2]">
+                    <div className="hidden">
                       <label className="block text-sm font-medium text-gray-900 mb-1">
                         Nombre del caballo
                       </label>
@@ -334,7 +341,7 @@ export default function EditRacePage() {
                     </div>
 
                     {/* Jockey */}
-                    <div className="flex-[2]">
+                    <div className="hidden">
                       <label className="block text-sm font-medium text-gray-900 mb-1">
                         Jockey
                       </label>
@@ -383,3 +390,5 @@ export default function EditRacePage() {
     </div>
   );
 }
+
+

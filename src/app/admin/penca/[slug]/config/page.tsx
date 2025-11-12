@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import LogoutButton from '@/components/LogoutButton';
 import RulesForm from './RulesForm';
+import PencaSettingsForm from './PencaSettingsForm';
 
 interface PageProps {
   params: {
@@ -71,11 +72,27 @@ export default async function ConfigPage({ params }: PageProps) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* General Settings */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Configuración General
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Configura los parámetros básicos de la penca
+          </p>
+
+          <PencaSettingsForm 
+            slug={params.slug}
+            currentNumParticipants={penca.num_participants || 8}
+          />
+        </div>
+
+        {/* Rules Configuration */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
             Configuración de Reglas
-          </h1>
+          </h2>
           <p className="text-gray-600 mb-6">
             Define las reglas de puntuación y modalidades para esta penca
           </p>

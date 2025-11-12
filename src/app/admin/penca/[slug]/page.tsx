@@ -7,6 +7,9 @@ import DeleteRaceButton from '@/components/DeleteRaceButton';
 import PencaTabs from './PencaTabs';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface PageProps {
   params: {
     slug: string;
@@ -67,17 +70,15 @@ export default async function ManagePencaPage({ params }: PageProps) {
     notFound();
   }
 
-  // Obtener carreras de la penca
-  const { data: races } = await supabase
+  // Obtener carreras de la penca con service role para evitar restricciones de RLS
+  const { data: races } = await supabaseAdmin
     .from('races')
     .select(`
       *,
       race_entries (
         id,
         program_number,
-        horse_name,
-        jockey,
-        trainer
+        horse_name:label
       ),
       predictions (
         id,
@@ -123,7 +124,7 @@ export default async function ManagePencaPage({ params }: PageProps) {
       winner_entry:race_entries!predictions_winner_pick_fkey (
         id,
         program_number,
-        horse_name
+        horse_name:label
       )
     `)
   .in('race_id', races?.map((r: any) => r.id) || []);
@@ -195,6 +196,7 @@ export default async function ManagePencaPage({ params }: PageProps) {
           pencaSlug={params.slug}
           races={races || []}
           memberships={memberships || []}
+          numParticipants={penca.num_participants || 8}
           scores={scores || []}
           predictions={predictions || []}
           raceResults={raceResults || []}
