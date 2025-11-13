@@ -280,7 +280,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                                 const entry = race.race_entries?.find((e: any) => e.id === entryId);
                                 return entry ? (
                                   <p key={entryId} className="text-sm text-yellow-900">
-                                    {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} {index + 1}°: <span className="font-bold">#{entry.program_number}</span> {entry.horse_name}
+                                    {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} {index + 1}°: <span className="font-bold">Caballo #{entry.program_number}</span>
                                   </p>
                                 ) : null;
                               })}
@@ -588,7 +588,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                                           const entry = race.race_entries?.find((e: any) => e.id === entryId);
                                           return entry ? (
                                             <p key={entryId} className="text-xs text-yellow-900">
-                                              {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} {index + 1}°: <span className="font-bold">#{entry.program_number}</span> {entry.horse_name}
+                                              {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} {index + 1}°: <span className="font-bold">Caballo #{entry.program_number}</span>
                                             </p>
                                           ) : null;
                                         })}
