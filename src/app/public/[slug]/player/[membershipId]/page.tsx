@@ -391,7 +391,7 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                             key={key}
                             className="px-3 py-1 bg-white border border-gray-200 rounded-full"
                           >
-                            {key}: <strong>{value} pts</strong>
+                            obtuvo <strong>{value} pts</strong>
                           </span>
                         )
                       )}
