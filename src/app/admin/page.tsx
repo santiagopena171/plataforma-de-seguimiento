@@ -2,6 +2,7 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import LogoutButton from '@/components/LogoutButton';
+import DeletePencaButton from '@/components/DeletePencaButton';
 import Link from 'next/link';
 
 export default async function AdminPage() {
@@ -157,18 +158,21 @@ export default async function AdminPage() {
                         {penca.slug}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Link
-                          href={`/admin/penca/${penca.slug}`}
-                          className="text-indigo-600 hover:text-indigo-900 mr-4"
-                        >
-                          Gestionar
-                        </Link>
-                        <Link
-                          href={`/penca/${penca.slug}`}
-                          className="text-gray-600 hover:text-gray-900"
-                        >
-                          Ver
-                        </Link>
+                        <div className="flex items-center justify-end gap-4">
+                          <Link
+                            href={`/admin/penca/${penca.slug}`}
+                            className="text-indigo-600 hover:text-indigo-900"
+                          >
+                            Gestionar
+                          </Link>
+                          <Link
+                            href={`/penca/${penca.slug}`}
+                            className="text-gray-600 hover:text-gray-900"
+                          >
+                            Ver
+                          </Link>
+                          <DeletePencaButton slug={penca.slug} name={penca.name} />
+                        </div>
                       </td>
                     </tr>
                   ))}
