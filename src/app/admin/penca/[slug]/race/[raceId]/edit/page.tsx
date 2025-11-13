@@ -22,9 +22,9 @@ interface Race {
 
 export default function EditRacePage() {
   const router = useRouter();
-  const params = useParams();
-  const slug = params.slug as string;
-  const raceId = params.raceId as string;
+  const params = useParams<{ slug?: string; raceId?: string }>();
+  const slug = typeof params?.slug === 'string' ? params.slug : null;
+  const raceId = typeof params?.raceId === 'string' ? params.raceId : null;
 
   const [race, setRace] = useState<Race | null>(null);
   const [horses, setHorses] = useState<Horse[]>([]);
@@ -41,6 +41,8 @@ export default function EditRacePage() {
 
   // Cargar datos de la carrera y caballos
   useEffect(() => {
+    if (!raceId) return;
+
     async function loadData() {
       try {
         setLoading(true);
@@ -163,6 +165,16 @@ export default function EditRacePage() {
       setSubmitting(false);
     }
   };
+
+  if (!slug || !raceId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center text-gray-600">
+          Parámetros inválidos para la carrera.
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
