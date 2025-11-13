@@ -45,20 +45,12 @@ export default function HomePage() {
             className="w-full px-4 py-3 border border-gray-200 rounded-md mb-4"
           />
 
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
-            >
-              Buscar Penca
-            </button>
-            <Link
-              href="/register"
-              className="flex-1 text-center border border-gray-200 px-4 py-2 rounded-md text-gray-700 hover:bg-gray-50"
-            >
-              Registrarse
-            </Link>
-          </div>
+          <button
+            type="submit"
+            className="w-full bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+          >
+            Buscar Penca
+          </button>
 
           <p className="text-sm text-gray-500 mt-4">Si sos admin, usá <Link href="/login" className="text-indigo-600">Iniciar sesión</Link>.</p>
         </form>
