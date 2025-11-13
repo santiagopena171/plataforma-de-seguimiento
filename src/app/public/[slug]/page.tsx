@@ -357,7 +357,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">{penca.name}</h1>
@@ -376,7 +376,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Quick diagnostics */}
         <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-white rounded-lg shadow p-4 text-center">
@@ -395,14 +395,14 @@ export default async function PublicPencaPage({ params }: PageProps) {
 
         {/* Leaderboard */}
         <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900">
               🏆 Tabla de Posiciones
             </h2>
           </div>
           
           {leaderboardCards.length === 0 ? (
-            <div className="px-6 py-8 text-center text-gray-500">
+            <div className="px-4 sm:px-6 py-8 text-center text-gray-500">
               {(!memberships || memberships.length === 0) ? (
                 'No hay miembros en esta penca aún.'
               ) : (
@@ -410,13 +410,13 @@ export default async function PublicPencaPage({ params }: PageProps) {
               )}
             </div>
           ) : (
-            <div className="px-6 py-6 space-y-6">
+            <div className="px-4 sm:px-6 py-6 space-y-6">
               {leaderboardCards.map((player) => (
                 <div
                   key={player.id}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-center gap-4 flex-1">
                       <div className="flex items-center justify-center w-12 h-12">
                         {player.rank === 1 && <span className="text-3xl">🥇</span>}
@@ -435,7 +435,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-indigo-600">
+                        <p className="text-2xl font-bold text-indigo-600 text-left sm:text-right">
                           {player.totalPoints} pts
                         </p>
                         <p className="text-xs text-gray-500">{player.races} carreras</p>
@@ -444,7 +444,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
                         {player.membershipId ? (
                           <Link
                             href={`/public/${params.slug}/player/${player.membershipId}`}
-                            className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1"
+                            className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1 border border-blue-100 rounded-md"
                           >
                             <span aria-hidden="true">▶</span>
                             Abrir Predicciones
@@ -463,14 +463,14 @@ export default async function PublicPencaPage({ params }: PageProps) {
 
         {/* Races History */}
         <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900">
               📋 Historial de Carreras
             </h2>
           </div>
 
           {!races || races.length === 0 ? (
-            <div className="px-6 py-8 text-center text-gray-500">
+            <div className="px-4 sm:px-6 py-8 text-center text-gray-500">
               No hay carreras todavía.
             </div>
           ) : (
@@ -481,7 +481,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
                 const raceTimeLabel = formatRaceTime(race);
                 
                 return (
-                  <div key={race.id} className="px-6 py-4">
+                  <div key={race.id} className="px-4 sm:px-6 py-4">
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="text-lg font-medium text-gray-900">
@@ -530,7 +530,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
 
       {/* Footer */}
       <footer className="mt-12 bg-white border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-sm text-gray-500">
             Plataforma de Seguimiento - {new Date().getFullYear()}
           </p>
