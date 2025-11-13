@@ -132,7 +132,8 @@ export default async function PencaPage({ params }: PencaPageProps) {
 
       return {
         user_id: member.user_id,
-        display_name: (member.profiles as any)?.display_name || member.guest_name || 'Usuario',
+        display_name: (member.profiles as any)?.display_name,
+        guest_name: member.guest_name,
         total_points: totalPoints,
       };
     })

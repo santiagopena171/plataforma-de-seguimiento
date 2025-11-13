@@ -23,6 +23,11 @@ interface Race {
 export default function EditRacePage() {
   const router = useRouter();
   const params = useParams();
+  
+  if (!params || !params.slug || !params.raceId) {
+    return null;
+  }
+  
   const slug = params.slug as string;
   const raceId = params.raceId as string;
 

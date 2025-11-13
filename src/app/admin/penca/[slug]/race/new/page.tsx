@@ -8,6 +8,11 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export default function NewRacePage() {
   const params = useParams();
+  
+  if (!params || !params.slug) {
+    return null;
+  }
+  
   const slug = params.slug as string;
   const [penca, setPenca] = useState<{ id: string; num_participants: number } | null>(null);
   const [loading, setLoading] = useState(true);

@@ -153,7 +153,7 @@ export default async function handler(
     );
 
     const rowsFromScores = (scores || []).map((score: any) => {
-      const prediction = predictionByMembership.get(score.membership_id);
+      const prediction: any = predictionByMembership.get(score.membership_id);
       return {
         membershipId: score.membership_id,
         name: getMembershipDisplayName(score.memberships),
