@@ -27,6 +27,19 @@ const formatHorseNumber = (entry?: any, fallbackId?: string | null) => {
   return 'caballo #?';
 };
 
+const normalizeRaceResult = (result: any) => {
+  if (!result) return result;
+  const order = Array.isArray(result.official_order) ? result.official_order : [];
+  const [first, second, third, fourth] = order;
+  return {
+    ...result,
+    first_place: result.first_place || first || null,
+    second_place: result.second_place || second || null,
+    third_place: result.third_place || third || null,
+    fourth_place: result.fourth_place || fourth || null,
+  };
+};
+
 export default async function PublicPlayerPredictionsPage({ params }: PageProps) {
   const supabase = createServiceRoleClient();
 
@@ -137,7 +150,10 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
   }
 
   const resultsMap = new Map(
-    raceResults.map((result: any) => [result.race_id, result])
+    raceResults.map((result: any) => {
+      const normalized = normalizeRaceResult(result);
+      return [normalized.race_id, normalized];
+    })
   );
   const predictionsMap = new Map(
     predictions.map((prediction: any) => [prediction.race_id, prediction])
@@ -268,6 +284,13 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                           {formatEntry(
                             getEntryFromRace(raceEntries, raceResult.third_place),
                             raceResult.third_place
+                          )}
+                        </li>
+                        <li>
+                          4°{' '}
+                          {formatEntry(
+                            getEntryFromRace(raceEntries, raceResult.fourth_place),
+                            raceResult.fourth_place
                           )}
                         </li>
                       </ul>
