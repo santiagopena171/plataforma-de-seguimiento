@@ -171,10 +171,13 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
     <div className="bg-white rounded-lg shadow">
       {/* Tabs Navigation */}
       <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+        <nav
+          className="-mb-px flex gap-4 px-4 sm:px-6 overflow-x-auto"
+          aria-label="Tabs"
+        >
           <button
             onClick={() => setActiveTab('races')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`flex-shrink-0 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'races'
                 ? 'border-indigo-500 text-indigo-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -184,7 +187,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
           </button>
           <button
             onClick={() => setActiveTab('members')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`flex-shrink-0 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'members'
                 ? 'border-indigo-500 text-indigo-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -194,7 +197,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
           </button>
           <button
             onClick={() => setActiveTab('leaderboard')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`flex-shrink-0 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'leaderboard'
                 ? 'border-indigo-500 text-indigo-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -204,7 +207,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
           </button>
           <Link
             href={`/admin/penca/${pencaSlug}/config`}
-            className="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+            className="flex-shrink-0 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
           >
             Configuración
           </Link>
@@ -212,15 +215,15 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
       </div>
 
       {/* Tab Content */}
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Races Tab */}
         {activeTab === 'races' && (
           <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Carreras</h3>
               <Link
                 href={`/admin/penca/${pencaSlug}/race/new`}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"
               >
                 + Agregar Carrera
               </Link>
@@ -240,7 +243,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                     key={race.id}
                     className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                   >
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3">
                           <span className="text-lg font-bold text-gray-900">
@@ -288,7 +291,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                           </div>
                         )}
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2">
                         <Link
                           href={`/admin/penca/${pencaSlug}/race/${race.id}/preview`}
                           className="text-sm text-blue-600 hover:text-blue-800 font-medium"
@@ -502,7 +505,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
 
         {/* Leaderboard Tab */}
         {activeTab === 'leaderboard' && (
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-6">Tabla de Posiciones</h3>
             {actualMembers.length > 0 ? (
               <div className="space-y-6">
@@ -517,9 +520,9 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                   .sort((a, b) => b.totalPoints - a.totalPoints)
                   .map(({ member, totalPoints }, index) => (
                     <div key={member.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-4">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-4">
                         <div className="flex items-center gap-4 flex-1">
-                          <div className="flex items-center justify-center w-10 h-10">
+                          <div className="flex items-center justify-center w-12 h-12">
                             {index === 0 && <span className="text-3xl">🥇</span>}
                             {index === 1 && <span className="text-3xl">🥈</span>}
                             {index === 2 && <span className="text-3xl">🥉</span>}
@@ -536,15 +539,15 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                             <p className="text-sm text-gray-500">Se unió {new Date(member.joined_at).toLocaleDateString('es-UY')}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
+                        <div className="flex flex-col gap-2 sm:items-end">
+                          <div className="text-left sm:text-right">
                             <p className="text-2xl font-bold text-indigo-600">{totalPoints} pts</p>
                           </div>
                           <button
                             onClick={() => setExpandedMember(expandedMember === member.id ? null : member.id)}
-                            className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                            className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 font-medium border border-blue-100 rounded-md self-start sm:self-end"
                           >
-                            {expandedMember === member.id ? '▼ Ocultar' : '▶ Ver Predicciones'}
+                            {expandedMember === member.id ? 'Ocultar predicciones' : 'Ver predicciones'}
                           </button>
                         </div>
                       </div>
@@ -563,7 +566,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                               
                               return (
                                 <div key={race.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                                  <div className="flex justify-between items-start mb-2">
+                                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between mb-2">
                                     <div>
                                       <p className="font-semibold text-gray-900">Carrera #{race.seq}</p>
                                       <p className="text-xs text-gray-600">{race.venue} • {race.distance_m}m</p>

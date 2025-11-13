@@ -140,9 +140,9 @@ export default async function ManagePencaPage({ params }: PageProps) {
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="flex items-center space-x-3">
+              <div className="flex flex-wrap items-center gap-2 text-sm">
                 <Link
                   href="/admin"
                   className="text-gray-600 hover:text-gray-900"
@@ -154,11 +154,15 @@ export default async function ManagePencaPage({ params }: PageProps) {
                   {penca.name}
                 </h1>
               </div>
-              <p className="text-sm text-gray-600 mt-1">
-                {penca.description}
-              </p>
+              {penca.description && (
+                <p className="text-sm text-gray-600 mt-1">
+                  {penca.description}
+                </p>
+              )}
             </div>
-            <LogoutButton />
+            <div className="self-start sm:self-auto">
+              <LogoutButton />
+            </div>
           </div>
         </div>
       </header>
