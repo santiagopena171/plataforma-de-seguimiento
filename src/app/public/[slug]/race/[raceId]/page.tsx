@@ -10,6 +10,19 @@ interface PageProps {
   };
 }
 
+const normalizeRaceResult = (result?: any) => {
+  if (!result) return null;
+  const order = Array.isArray(result.official_order) ? result.official_order : [];
+  const [first, second, third, fourth] = order;
+  return {
+    ...result,
+    first_place: result.first_place || first || null,
+    second_place: result.second_place || second || null,
+    third_place: result.third_place || third || null,
+    fourth_place: result.fourth_place || fourth || null,
+  };
+};
+
 export default async function PublicRaceDetailPage({ params }: PageProps) {
   // Use the service role client on the server-side to bypass RLS for public
   // read-only pages that should show published results to unauthenticated users.
@@ -58,6 +71,8 @@ export default async function PublicRaceDetailPage({ params }: PageProps) {
     .eq('race_id', params.raceId)
     .single();
 
+  const normalizedRaceResult = normalizeRaceResult(raceResult);
+
   // Obtener entradas (participantes)
   const { data: entries } = await supabase
     .from('race_entries')
@@ -76,6 +91,27 @@ export default async function PublicRaceDetailPage({ params }: PageProps) {
     entriesMap[entry.id] = entry;
     entriesByNumber[String(entry.program_number)] = entry;
   });
+
+  const resolveEntryDisplay = (raw?: string | null) => {
+    if (!raw) {
+      return { number: '—', label: null };
+    }
+    const entryById = entriesMap[raw];
+    if (entryById) {
+      return {
+        number: entryById.number ?? entryById.program_number ?? raw,
+        label: entryById.label || entryById.horse_name || null,
+      };
+    }
+    const entryByProgram = entriesByNumber[String(raw)];
+    if (entryByProgram) {
+      return {
+        number: entryByProgram.program_number,
+        label: entryByProgram.label || entryByProgram.horse_name || null,
+      };
+    }
+    return { number: raw, label: null };
+  };
 
   // Obtener predicciones
   const { data: predictions } = await supabase
@@ -139,48 +175,57 @@ export default async function PublicRaceDetailPage({ params }: PageProps) {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Race Result */}
-        {raceResult && (
+        {normalizedRaceResult && (
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               🏁 Resultado Oficial
             </h2>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-                <div className="text-3xl mb-2">🥇</div>
-                <div className="text-sm text-gray-600">1° Lugar</div>
-                <div className="text-xl font-bold text-gray-900">
-                  #{entriesMap[raceResult.first_place]?.number || raceResult.first_place}
-                </div>
-                {entriesMap[raceResult.first_place]?.label && (
-                  <div className="text-sm text-gray-700 mt-1">
-                    {entriesMap[raceResult.first_place].label}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                {
+                  key: 'first_place' as const,
+                  label: '1° Lugar',
+                  icon: '🥇',
+                  container: 'bg-yellow-50 border border-yellow-200',
+                },
+                {
+                  key: 'second_place' as const,
+                  label: '2° Lugar',
+                  icon: '🥈',
+                  container: 'bg-gray-50 border border-gray-200',
+                },
+                {
+                  key: 'third_place' as const,
+                  label: '3° Lugar',
+                  icon: '🥉',
+                  container: 'bg-orange-50 border border-orange-200',
+                },
+                {
+                  key: 'fourth_place' as const,
+                  label: '4° Lugar',
+                  icon: '🏅',
+                  container: 'bg-indigo-50 border border-indigo-200',
+                },
+              ].map((place) => {
+                const entry = resolveEntryDisplay(
+                  normalizedRaceResult[place.key]
+                );
+                const horseNumberLabel = entry.number
+                  ? `Caballo #${entry.number}`
+                  : 'Caballo #?';
+                return (
+                  <div
+                    key={place.key}
+                    className={`${place.container} rounded-lg p-4 text-center`}
+                  >
+                    <div className="text-3xl mb-2">{place.icon}</div>
+                    <div className="text-sm text-gray-600">{place.label}</div>
+                    <div className="text-xl font-bold text-gray-900">
+                      {horseNumberLabel}
+                    </div>
                   </div>
-                )}
-              </div>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                <div className="text-3xl mb-2">🥈</div>
-                <div className="text-sm text-gray-600">2° Lugar</div>
-                <div className="text-xl font-bold text-gray-900">
-                  #{entriesMap[raceResult.second_place]?.number || raceResult.second_place}
-                </div>
-                {entriesMap[raceResult.second_place]?.label && (
-                  <div className="text-sm text-gray-700 mt-1">
-                    {entriesMap[raceResult.second_place].label}
-                  </div>
-                )}
-              </div>
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
-                <div className="text-3xl mb-2">🥉</div>
-                <div className="text-sm text-gray-600">3° Lugar</div>
-                <div className="text-xl font-bold text-gray-900">
-                  #{entriesMap[raceResult.third_place]?.number || raceResult.third_place}
-                </div>
-                {entriesMap[raceResult.third_place]?.label && (
-                  <div className="text-sm text-gray-700 mt-1">
-                    {entriesMap[raceResult.third_place].label}
-                  </div>
-                )}
-              </div>
+                );
+              })}
             </div>
           </div>
         )}
