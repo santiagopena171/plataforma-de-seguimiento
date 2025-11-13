@@ -17,6 +17,16 @@ const formatEntry = (entry: any, fallbackId?: string | null) => {
   return `#${entry.program_number}${horse}`;
 };
 
+const formatHorseNumber = (entry?: any, fallbackId?: string | null) => {
+  if (entry?.program_number) {
+    return `caballo #${entry.program_number}`;
+  }
+  if (fallbackId && /^[0-9]+$/.test(fallbackId)) {
+    return `caballo #${fallbackId}`;
+  }
+  return 'caballo #?';
+};
+
 export default async function PublicPlayerPredictionsPage({ params }: PageProps) {
   const supabase = createServiceRoleClient();
 
@@ -296,11 +306,8 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                           }
                           return null;
                         })()}
-                        <div>
-                          <span className="font-semibold text-gray-900">
-                            Ganador:{' '}
-                          </span>
-                          {formatEntry(
+                        <div className="font-semibold text-gray-900">
+                          {formatHorseNumber(
                             getEntryFromRace(
                               raceEntries,
                               playerPrediction.winner_pick
@@ -316,7 +323,10 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                               </span>
                               {playerPrediction.exacta_pick
                                 .map((pick: string) =>
-                                  formatEntry(getEntryFromRace(raceEntries, pick), pick)
+                                  formatHorseNumber(
+                                    getEntryFromRace(raceEntries, pick),
+                                    pick
+                                  )
                                 )
                                 .join(' → ')}
                             </div>
@@ -329,7 +339,10 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                               </span>
                               {playerPrediction.trifecta_pick
                                 .map((pick: string) =>
-                                  formatEntry(getEntryFromRace(raceEntries, pick), pick)
+                                  formatHorseNumber(
+                                    getEntryFromRace(raceEntries, pick),
+                                    pick
+                                  )
                                 )
                                 .join(' → ')}
                             </div>
