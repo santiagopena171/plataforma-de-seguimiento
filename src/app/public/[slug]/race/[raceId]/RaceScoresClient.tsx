@@ -113,13 +113,8 @@ export default function RaceScoresClient({ raceId }: RaceScoresClientProps) {
               </td>
               <td className="px-6 py-4 text-sm text-gray-700">
                 <div className="space-y-2">
-                  <div>
-                    <span className="text-xs uppercase text-gray-500">
-                      Ganador
-                    </span>
-                    <span className="ml-2 font-semibold text-gray-900">
-                      {row.winner}
-                    </span>
+                  <div className="font-semibold text-gray-900">
+                    {row.winner}
                   </div>
                   {row.exacta && (
                     <div>
