@@ -101,9 +101,29 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
 
     const { data: fetchedEntries } = await supabase
       .from('race_entries')
-      .select('id, race_id, program_number, horse_name')
+      .select('id, race_id, program_number, horse_name:label')
       .in('race_id', publishedRaceIds);
     entries = fetchedEntries || [];
+  }
+
+  const predictionEntryIds = Array.from(
+    new Set(
+      predictions
+        .flatMap((prediction: any) => [
+          prediction.winner_pick,
+          ...(prediction.exacta_pick || []),
+          ...(prediction.trifecta_pick || []),
+        ])
+        .filter(Boolean)
+    )
+  );
+
+  if (predictionEntryIds.length > 0) {
+    const { data: extraEntries } = await supabase
+      .from('race_entries')
+      .select('id, race_id, program_number, horse_name:label')
+      .in('id', predictionEntryIds);
+    entries = entries.concat(extraEntries || []);
   }
 
   const resultsMap = new Map(
@@ -115,14 +135,39 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
   const scoresMap = new Map(
     scores.map((score: any) => [score.race_id, score])
   );
-  const entriesByRace = new Map<string, Record<string, any>>();
+  type RaceEntriesMaps = {
+    byId: Record<string, any>;
+    byProgram: Record<string | number, any>;
+  };
 
-  entries.forEach((entry: any) => {
+  const entriesByRace = new Map<string, RaceEntriesMaps>();
+  const entryById = new Map<string, any>();
+
+  const addEntryToMaps = (entry: any) => {
+    if (!entry) return;
+    entryById.set(entry.id, entry);
     if (!entriesByRace.has(entry.race_id)) {
-      entriesByRace.set(entry.race_id, {});
+      entriesByRace.set(entry.race_id, { byId: {}, byProgram: {} });
     }
-    entriesByRace.get(entry.race_id)![entry.id] = entry;
-  });
+    const raceEntries = entriesByRace.get(entry.race_id)!;
+    raceEntries.byId[entry.id] = entry;
+    raceEntries.byProgram[String(entry.program_number)] = entry;
+  };
+
+  entries.forEach(addEntryToMaps);
+
+  const getEntryFromRace = (
+    raceEntries: RaceEntriesMaps | undefined,
+    pick?: string | null
+  ) => {
+    if (!pick) return undefined;
+    if (raceEntries) {
+      const entry =
+        raceEntries.byId[pick] || raceEntries.byProgram[String(pick)];
+      if (entry) return entry;
+    }
+    return entryById.get(pick);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -156,7 +201,7 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
             const raceResult = resultsMap.get(race.id);
             const playerPrediction = predictionsMap.get(race.id);
             const playerScore = scoresMap.get(race.id);
-            const raceEntries = entriesByRace.get(race.id) || {};
+            const raceEntries = entriesByRace.get(race.id);
 
             const raceDateLabel = race.start_at
               ? new Date(race.start_at).toLocaleDateString('es-UY')
@@ -197,21 +242,21 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                         <li>
                           🥇{' '}
                           {formatEntry(
-                            raceEntries[raceResult.first_place],
+                            getEntryFromRace(raceEntries, raceResult.first_place),
                             raceResult.first_place
                           )}
                         </li>
                         <li>
                           🥈{' '}
                           {formatEntry(
-                            raceEntries[raceResult.second_place],
+                            getEntryFromRace(raceEntries, raceResult.second_place),
                             raceResult.second_place
                           )}
                         </li>
                         <li>
                           🥉{' '}
                           {formatEntry(
-                            raceEntries[raceResult.third_place],
+                            getEntryFromRace(raceEntries, raceResult.third_place),
                             raceResult.third_place
                           )}
                         </li>
@@ -223,18 +268,43 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                     )}
                   </div>
 
-                  <div className="border border-gray-200 rounded-lg p-4 md:col-span-2">
+                    <div className="border border-gray-200 rounded-lg p-4 md:col-span-2">
                     <p className="text-xs uppercase text-gray-500 tracking-wide mb-2">
                       Predicción del jugador
                     </p>
                     {playerPrediction ? (
                       <div className="space-y-2 text-sm text-gray-700">
+                        {(() => {
+                          const winnerEntry = getEntryFromRace(
+                            raceEntries,
+                            playerPrediction.winner_pick
+                          );
+                          if (!winnerEntry) {
+                            console.warn('Missing entry for winner_pick', {
+                              raceId: race.id,
+                              pick: playerPrediction.winner_pick,
+                              raceEntriesIds: Object.keys(
+                                raceEntries?.byId || {}
+                              ),
+                              raceEntriesPrograms: Object.keys(
+                                raceEntries?.byProgram || {}
+                              ),
+                              entryByIdHas: entryById.has(
+                                playerPrediction.winner_pick || ''
+                              ),
+                            });
+                          }
+                          return null;
+                        })()}
                         <div>
                           <span className="font-semibold text-gray-900">
                             Ganador:{' '}
                           </span>
                           {formatEntry(
-                            raceEntries[playerPrediction.winner_pick],
+                            getEntryFromRace(
+                              raceEntries,
+                              playerPrediction.winner_pick
+                            ),
                             playerPrediction.winner_pick
                           )}
                         </div>
@@ -246,7 +316,7 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                               </span>
                               {playerPrediction.exacta_pick
                                 .map((pick: string) =>
-                                  formatEntry(raceEntries[pick], pick)
+                                  formatEntry(getEntryFromRace(raceEntries, pick), pick)
                                 )
                                 .join(' → ')}
                             </div>
@@ -259,7 +329,7 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                               </span>
                               {playerPrediction.trifecta_pick
                                 .map((pick: string) =>
-                                  formatEntry(raceEntries[pick], pick)
+                                  formatEntry(getEntryFromRace(raceEntries, pick), pick)
                                 )
                                 .join(' → ')}
                             </div>
