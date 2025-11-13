@@ -38,6 +38,19 @@ export default async function PublicRaceDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  const raceStartDate = race.start_at ? new Date(race.start_at) : null;
+  const hasValidStart =
+    raceStartDate && !Number.isNaN(raceStartDate.getTime());
+  const raceDateLabel = hasValidStart
+    ? raceStartDate.toLocaleDateString('es-UY', { dateStyle: 'medium' })
+    : 'Fecha a confirmar';
+  const raceTimeLabel = hasValidStart
+    ? raceStartDate.toLocaleTimeString('es-UY', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : null;
+
   // Obtener resultado
   const { data: raceResult } = await supabase
     .from('race_results')
@@ -112,14 +125,15 @@ export default async function PublicRaceDetailPage({ params }: PageProps) {
               ← Volver
             </Link>
             <span className="text-gray-400">/</span>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{race.venue}</h1>
-              <p className="text-sm text-gray-600">
-                {race.distance_m}m • {new Date(race.date).toLocaleDateString('es-UY')} {race.time}
-              </p>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{race.venue}</h1>
+                <p className="text-sm text-gray-600">
+                  {race.distance_m}m • {raceDateLabel}
+                  {raceTimeLabel ? ` ${raceTimeLabel}` : ''}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
       </header>
 
       {/* Main Content */}

@@ -10,6 +10,43 @@ interface PageProps {
   };
 }
 
+const getRaceStartDate = (race?: any) => {
+  if (!race) return null;
+  const candidates = [
+    race.start_at,
+    race.date && race.time ? `${race.date}T${race.time}` : race.date,
+    race.created_at,
+  ];
+
+  for (const raw of candidates) {
+    if (!raw) continue;
+    const parsed = new Date(raw);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  return null;
+};
+
+const formatRaceDate = (
+  race: any,
+  options?: Intl.DateTimeFormatOptions
+) => {
+  const date = getRaceStartDate(race);
+  return date ? date.toLocaleDateString('es-UY', options) : null;
+};
+
+const formatRaceTime = (race: any) => {
+  const date = getRaceStartDate(race);
+  return date
+    ? date.toLocaleTimeString('es-UY', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : null;
+};
+
 export default async function PublicPencaPage({ params }: PageProps) {
   const supabase = createServerComponentClient({ cookies });
 
@@ -35,19 +72,18 @@ export default async function PublicPencaPage({ params }: PageProps) {
   );
 
   // Obtener todas las carreras de la penca (para listar historial y estados)
-  const { data: races, error: racesError } = await supabase
+  const { data: races, error: racesError } = await supabaseAdmin
     .from('races')
     .select(`
       id,
       seq,
       venue,
       distance_m,
-      date,
-      time,
+      start_at,
       status
     `)
     .eq('penca_id', penca.id)
-    .order('date', { ascending: false });
+    .order('start_at', { ascending: false });
 
   // Obtener resultados de las carreras
   const raceIds = races?.map((r: any) => r.id) || [];
@@ -66,16 +102,21 @@ export default async function PublicPencaPage({ params }: PageProps) {
       (race: any) =>
         race.status === 'result_published' || raceIdsWithResults.has(race.id)
     )
-    .sort(
-      (a: any, b: any) =>
-        new Date(b.date || b.created_at || 0).getTime() -
-        new Date(a.date || a.created_at || 0).getTime()
-    );
+    .sort((a: any, b: any) => {
+      const end = getRaceStartDate(b)?.getTime() || 0;
+      const start = getRaceStartDate(a)?.getTime() || 0;
+      return end - start;
+    });
 
   console.log('PUBLIC PUBLIC RACES', {
     racesCount: races?.length || 0,
     racesError,
-    statuses: (races || []).map((r: any) => ({ id: r.id, seq: r.seq, status: r.status, date: r.date })),
+    statuses: (races || []).map((r: any) => ({
+      id: r.id,
+      seq: r.seq,
+      status: r.status,
+      start_at: r.start_at,
+    })),
     publishedCount: publishedRaces.length,
   });
 
@@ -352,48 +393,6 @@ export default async function PublicPencaPage({ params }: PageProps) {
           </div>
         </div>
 
-        {publishedRaces.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Predicciones disponibles</h2>
-                <p className="text-sm text-gray-500">
-                  Carreras cerradas con resultado publicado
-                </p>
-              </div>
-              <span className="text-sm text-gray-500">
-                {publishedRaces.length} {publishedRaces.length === 1 ? 'carrera' : 'carreras'}
-              </span>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {publishedRaces.map((race: any) => (
-                <Link
-                  key={race.id}
-                  href={`/public/${params.slug}/race/${race.id}`}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 hover:shadow transition-colors flex items-center justify-between"
-                >
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-500">
-                      Carrera #{race.seq || '—'}
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900">{race.venue}</p>
-                    <p className="text-xs text-gray-500">
-                      Publicada{' '}
-                      {race.date
-                        ? new Date(race.date).toLocaleDateString('es-UY')
-                        : 'recientemente'}
-                    </p>
-                  </div>
-                  <span className="text-sm font-medium text-indigo-600">
-                    Ver predicciones →
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Leaderboard */}
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -478,6 +477,8 @@ export default async function PublicPencaPage({ params }: PageProps) {
             <div className="divide-y divide-gray-200">
               {races.map((race: any) => {
                 const result = resultsMap[race.id];
+                const raceDateLabel = formatRaceDate(race);
+                const raceTimeLabel = formatRaceTime(race);
                 
                 return (
                   <div key={race.id} className="px-6 py-4">
@@ -487,7 +488,8 @@ export default async function PublicPencaPage({ params }: PageProps) {
                           {race.venue}
                         </h3>
                         <p className="text-sm text-gray-500 mt-1">
-                          {race.distance_m}m • {new Date(race.date).toLocaleDateString('es-UY')} {race.time}
+                          {race.distance_m}m • {raceDateLabel || 'Fecha a confirmar'}
+                          {raceTimeLabel ? ` ${raceTimeLabel}` : ''}
                         </p>
                         
                         {result && (
