@@ -378,7 +378,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Quick diagnostics */}
-        <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-white rounded-lg shadow p-4 text-center">
             <p className="text-sm text-gray-500">Miembros</p>
             <p className="text-2xl font-bold text-gray-900">{playerMemberships.length}</p>
@@ -386,10 +386,6 @@ export default async function PublicPencaPage({ params }: PageProps) {
           <div className="bg-white rounded-lg shadow p-4 text-center">
             <p className="text-sm text-gray-500">Carreras</p>
             <p className="text-2xl font-bold text-gray-900">{(races || []).length}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4 text-center">
-            <p className="text-sm text-gray-500">Scores</p>
-            <p className="text-2xl font-bold text-gray-900">{(scores || []).length}</p>
           </div>
         </div>
 

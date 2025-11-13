@@ -140,23 +140,11 @@ export default function RaceScoresClient({ raceId }: RaceScoresClientProps) {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-center">
                   <div className="text-lg">{row.points ?? 0} pts</div>
-                  {row.breakdown && (
-                    <div className="mt-2 flex flex-wrap gap-2 justify-center text-xs text-gray-500">
-                      {Object.entries(row.breakdown).map(([key, value]) => (
-                        <span
-                          key={key}
-                          className="px-2 py-0.5 bg-gray-100 rounded-full"
-                        >
-                          {key}: {value}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       </div>
 
       <div className="sm:hidden space-y-4 px-4">
@@ -198,15 +186,6 @@ export default function RaceScoresClient({ raceId }: RaceScoresClientProps) {
               <span className="text-lg font-bold text-indigo-600">
                 {row.points ?? 0} pts
               </span>
-              {row.breakdown && (
-                <div className="text-xs text-gray-500 text-right">
-                  {Object.entries(row.breakdown).map(([key, value]) => (
-                    <div key={key}>
-                      {key}: {value}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         ))}
