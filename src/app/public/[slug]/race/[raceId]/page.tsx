@@ -1,7 +1,7 @@
-import { cookies } from 'next/headers';
 import { createServiceRoleClient } from '@/lib/supabase/client';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import RaceScoresClient from './RaceScoresClient';
 
 interface PageProps {
   params: {
@@ -9,6 +9,8 @@ interface PageProps {
     raceId: string;
   };
 }
+
+export const revalidate = 0;
 
 const normalizeRaceResult = (result?: any) => {
   if (!result) return null;
@@ -113,41 +115,6 @@ export default async function PublicRaceDetailPage({ params }: PageProps) {
     return { number: raw, label: null };
   };
 
-  // Obtener predicciones
-  const { data: predictions } = await supabase
-    .from('predictions')
-    .select(`
-      *,
-      memberships!predictions_membership_id_fkey (
-        id,
-        guest_name,
-        profiles:user_id (
-          full_name,
-          display_name,
-          email
-        )
-      )
-    `)
-    .eq('race_id', params.raceId);
-
-  // Obtener scores
-  const { data: scores } = await supabase
-    .from('scores')
-    .select(`
-      *,
-      memberships!scores_membership_id_fkey (
-        id,
-        guest_name,
-        profiles:user_id (
-          full_name,
-          display_name,
-          email
-        )
-      )
-    `)
-    .eq('race_id', params.raceId)
-    .order('points_total', { ascending: false });
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -237,84 +204,7 @@ export default async function PublicRaceDetailPage({ params }: PageProps) {
               📊 Puntuaciones
             </h2>
           </div>
-
-          {!scores || scores.length === 0 ? (
-            <div className="px-6 py-8 text-center text-gray-500">
-              No hay puntuaciones disponibles.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Posición
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Jugador
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Predicción
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Puntos
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {scores.map((score: any, index: number) => {
-                    const membership = score.memberships;
-                    const name = membership?.guest_name || 
-                               membership?.profiles?.display_name || 
-                               membership?.profiles?.full_name || 
-                               membership?.profiles?.email || 
-                               'Sin nombre';
-
-                    // Buscar predicción correspondiente
-                    const prediction = predictions?.find((p: any) => 
-                      p.membership_id === score.membership_id
-                    );
-
-                    return (
-                      <tr key={score.id} className={index < 3 ? 'bg-yellow-50' : ''}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {index === 0 && '🥇'}
-                          {index === 1 && '🥈'}
-                          {index === 2 && '🥉'}
-                          {index > 2 && `${index + 1}°`}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {name}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 text-center">
-                          {prediction ? (
-                            <div className="flex gap-2 justify-center">
-                              <span>
-                                #{(entriesMap[prediction.winner_pick]?.number || entriesByNumber[String(prediction.winner_pick)]?.program_number) || '?'}
-                              </span>
-                              <span>-</span>
-                              <span>
-                                #{(entriesMap[prediction.exacta_pick?.[1]]?.number || entriesByNumber[String(prediction.exacta_pick?.[1])]?.program_number) || '?'}
-                              </span>
-                              <span>-</span>
-                              <span>
-                                #{(entriesMap[prediction.trifecta_pick?.[2]]?.number || entriesByNumber[String(prediction.trifecta_pick?.[2])]?.program_number) || '?'}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">Sin predicción</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-center">
-                          {score.points_total}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <RaceScoresClient raceId={params.raceId} />
         </div>
       </main>
     </div>
