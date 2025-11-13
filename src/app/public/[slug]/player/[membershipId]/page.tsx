@@ -267,28 +267,28 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                       <ul className="space-y-1 text-sm text-gray-700">
                         <li>
                           🥇{' '}
-                          {formatEntry(
+                          {formatHorseNumber(
                             getEntryFromRace(raceEntries, raceResult.first_place),
                             raceResult.first_place
                           )}
                         </li>
                         <li>
                           🥈{' '}
-                          {formatEntry(
+                          {formatHorseNumber(
                             getEntryFromRace(raceEntries, raceResult.second_place),
                             raceResult.second_place
                           )}
                         </li>
                         <li>
                           🥉{' '}
-                          {formatEntry(
+                          {formatHorseNumber(
                             getEntryFromRace(raceEntries, raceResult.third_place),
                             raceResult.third_place
                           )}
                         </li>
                         <li>
-                          4°{' '}
-                          {formatEntry(
+                          <span className="font-semibold text-gray-900">4°</span>{' '}
+                          {formatHorseNumber(
                             getEntryFromRace(raceEntries, raceResult.fourth_place),
                             raceResult.fourth_place
                           )}
