@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation';
 interface DeletePencaButtonProps {
   slug: string;
   name?: string | null;
+  align?: 'start' | 'end';
 }
 
 export default function DeletePencaButton({
   slug,
   name,
+  align = 'end',
 }: DeletePencaButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -42,8 +44,11 @@ export default function DeletePencaButton({
     }
   };
 
+  const alignmentClass =
+    align === 'start' ? 'items-start text-left' : 'items-end text-right';
+
   return (
-    <div className="inline-flex flex-col items-end">
+    <div className={`inline-flex flex-col ${alignmentClass}`}>
       <button
         type="button"
         onClick={handleDelete}
@@ -53,7 +58,7 @@ export default function DeletePencaButton({
         {loading ? 'Eliminando…' : 'Eliminar'}
       </button>
       {error && (
-        <span className="mt-1 text-xs text-red-500 max-w-xs text-right">
+        <span className="mt-1 text-xs text-red-500 max-w-xs">
           {error}
         </span>
       )}

@@ -43,8 +43,8 @@ export default async function AdminPage() {
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-center sm:text-left">
               <h1 className="text-2xl font-bold text-gray-900">
                 👑 Panel de Administración
               </h1>
@@ -52,10 +52,10 @@ export default async function AdminPage() {
                 Gestiona pencas, carreras y resultados
               </p>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4">
               <Link
                 href="/dashboard"
-                className="text-sm text-gray-600 hover:text-gray-900"
+                className="text-sm text-gray-600 hover:text-gray-900 text-center"
               >
                 ← Ver mi Dashboard
               </Link>
@@ -87,7 +87,7 @@ export default async function AdminPage() {
         <div className="mb-8">
           <Link
             href="/admin/penca/create"
-            className="inline-flex items-center bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow border-l-4 border-indigo-500"
+            className="w-full sm:w-auto inline-flex flex-col sm:flex-row sm:items-center bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow border-l-4 border-indigo-500 text-center sm:text-left"
           >
             <div className="flex-shrink-0">
               <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
@@ -96,7 +96,7 @@ export default async function AdminPage() {
                 </svg>
               </div>
             </div>
-            <div className="ml-4">
+            <div className="mt-4 sm:mt-0 sm:ml-4">
               <h3 className="text-lg font-semibold text-gray-900">Crear Penca</h3>
               <p className="text-sm text-gray-600">Nueva competencia</p>
             </div>
@@ -112,11 +112,75 @@ export default async function AdminPage() {
           </div>
           
           {pencas && pencas.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <>
+              {/* Mobile list */}
+              <div className="sm:hidden space-y-4 p-4">
+                {pencas.map((penca: any) => (
+                  <div
+                    key={penca.id}
+                    className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-base font-semibold text-gray-900">
+                          {penca.name}
+                        </p>
+                        {penca.description && (
+                          <p className="text-sm text-gray-500">
+                            {penca.description}
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          penca.status === 'open'
+                            ? 'bg-green-100 text-green-800'
+                            : penca.status === 'closed'
+                            ? 'bg-gray-100 text-gray-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}
+                      >
+                        {penca.status}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-1 gap-1 text-sm text-gray-600">
+                      <p>
+                        <span className="font-semibold">Creada por:</span>{' '}
+                        {penca.profiles?.display_name || 'N/A'}
+                      </p>
+                      <p className="font-mono text-xs text-gray-500">
+                        {penca.slug}
+                      </p>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <Link
+                        href={`/admin/penca/${penca.slug}`}
+                        className="text-indigo-600 hover:text-indigo-900 text-sm font-medium"
+                      >
+                        Gestionar
+                      </Link>
+                      <Link
+                        href={`/penca/${penca.slug}`}
+                        className="text-gray-600 hover:text-gray-900 text-sm font-medium"
+                      >
+                        Ver
+                      </Link>
+                      <DeletePencaButton
+                        slug={penca.slug}
+                        name={penca.name}
+                        align="start"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Nombre
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -178,7 +242,8 @@ export default async function AdminPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           ) : (
             <div className="px-6 py-12 text-center">
               <svg
