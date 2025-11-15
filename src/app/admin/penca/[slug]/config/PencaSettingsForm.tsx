@@ -72,8 +72,8 @@ export default function PencaSettingsForm({
           className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
         <p className="text-sm text-gray-500 mt-2">
-          Define cuántos miembros/jugadores puede tener esta penca (mínimo 3). 
-          Se mostrarán estos espacios en la sección de Miembros para agregar personas.
+          Define cuantos miembros/jugadores puede tener esta penca (minimo 3, sin maximo).
+          Se mostraran estos espacios en la seccion de Miembros para agregar personas.
         </p>
       </div>
 
