@@ -7,13 +7,18 @@ import SimplifiedRaceForm from '@/components/SimplifiedRaceFormClean';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export default function NewRacePage() {
-  const params = useParams();
-  const slug = params.slug as string;
+  const params = useParams<{ slug?: string }>();
+  const slugParam = params?.slug;
+  const slug = Array.isArray(slugParam) ? slugParam[0] : slugParam;
   const [penca, setPenca] = useState<{ id: string; num_participants: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClientComponentClient();
 
   useEffect(() => {
+    if (!slug) {
+      return;
+    }
+
     async function fetchPenca() {
       const { data } = await supabase
         .from('pencas')
@@ -33,6 +38,14 @@ export default function NewRacePage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-gray-600">Cargando...</div>
+      </div>
+    );
+  }
+
+  if (!slug) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-red-600">No se pudo determinar la penca.</div>
       </div>
     );
   }
