@@ -391,7 +391,15 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                             key={key}
                             className="px-3 py-1 bg-white border border-gray-200 rounded-full"
                           >
-                            obtuvo <strong>{value} pts</strong>
+                            obtuvo{' '}
+                            <strong>
+                              {typeof value === 'number' || typeof value === 'string'
+                                ? value
+                                : Array.isArray(value)
+                                ? value.join(', ')
+                                : JSON.stringify(value)}
+                            </strong>{' '}
+                            pts
                           </span>
                         )
                       )}
