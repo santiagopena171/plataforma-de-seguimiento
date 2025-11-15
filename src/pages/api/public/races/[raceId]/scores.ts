@@ -1,6 +1,21 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createServiceRoleClient } from '@/lib/supabase/client';
 
+type PredictionRow = {
+  membership_id: string;
+  winner_pick: string | null;
+  exacta_pick: string[] | null;
+  trifecta_pick: string[] | null;
+  memberships?: any;
+};
+
+type ScoreRow = {
+  membership_id: string;
+  points_total?: number | null;
+  breakdown?: Record<string, unknown> | null;
+  memberships?: any;
+};
+
 const resolveEntryDisplay = (
   raw: string | null,
   entriesMap: Record<string, any>,
@@ -121,6 +136,9 @@ export default async function handler(
           .order('points_total', { ascending: false }),
       ]);
 
+    const predictionRows: PredictionRow[] = (predictions as PredictionRow[]) || [];
+    const scoreRows: ScoreRow[] = (scores as ScoreRow[]) || [];
+
     if (entriesError || predictionsError || scoresError) {
       console.error('PUBLIC RACE SCORES API ERRORS', {
         entriesError,
@@ -142,17 +160,17 @@ export default async function handler(
       entriesByNumber[String(entry.program_number)] = entry;
     });
 
-    const scoreByMembership = new Map(
-      (scores || []).map((score: any) => [score.membership_id, score])
+    const scoreByMembership = new Map<string, ScoreRow>(
+      scoreRows.map((score) => [score.membership_id, score])
     );
-    const predictionByMembership = new Map(
-      (predictions || []).map((prediction: any) => [
+    const predictionByMembership = new Map<string, PredictionRow>(
+      predictionRows.map((prediction) => [
         prediction.membership_id,
         prediction,
       ])
     );
 
-    const rowsFromScores = (scores || []).map((score: any) => {
+    const rowsFromScores = scoreRows.map((score) => {
       const prediction = predictionByMembership.get(score.membership_id);
       return {
         membershipId: score.membership_id,
@@ -177,12 +195,12 @@ export default async function handler(
       };
     });
 
-    const predictionsWithoutScore = (predictions || []).filter(
-      (prediction: any) => !scoreByMembership.has(prediction.membership_id)
+    const predictionsWithoutScore = predictionRows.filter(
+      (prediction) => !scoreByMembership.has(prediction.membership_id)
     );
 
     const rowsFromPredictions = predictionsWithoutScore.map(
-      (prediction: any) => ({
+      (prediction) => ({
         membershipId: prediction.membership_id,
         name: getMembershipDisplayName(prediction.memberships),
         winner: formatPickLabel(
