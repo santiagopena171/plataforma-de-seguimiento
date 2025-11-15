@@ -28,6 +28,13 @@ interface PencaPageProps {
   };
 }
 
+interface LeaderboardPlayer {
+  user_id: string;
+  display_name: string;
+  guest_name?: string | null;
+  total_points: number;
+}
+
 export default async function PencaPage({ params }: PencaPageProps) {
   const supabase = createServerComponentClient({ cookies });
 
@@ -120,7 +127,7 @@ export default async function PencaPage({ params }: PencaPageProps) {
     .eq('penca_id', penca.id);
 
   // Calcular puntos totales para cada usuario
-  const leaderboardWithPoints = await Promise.all(
+  const leaderboardWithPoints: LeaderboardPlayer[] = await Promise.all(
     (leaderboard || []).map(async (member) => {
       const { data: memberScores } = await supabase
         .from('scores')
@@ -133,6 +140,7 @@ export default async function PencaPage({ params }: PencaPageProps) {
       return {
         user_id: member.user_id,
         display_name: (member.profiles as any)?.display_name || member.guest_name || 'Usuario',
+        guest_name: member.guest_name,
         total_points: totalPoints,
       };
     })
