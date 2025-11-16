@@ -1,6 +1,7 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { createServiceRoleClient } from '@/lib/supabase/client';
 
 export async function PUT(
   request: NextRequest,
@@ -27,6 +28,8 @@ export async function PUT(
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
+  const adminSupabase = createServiceRoleClient();
+
   try {
     const body = await request.json();
     const {
@@ -40,7 +43,7 @@ export async function PUT(
     } = body;
 
     // Verificar que la penca existe
-    const { data: penca, error: pencaError } = await supabase
+    const { data: penca, error: pencaError } = await adminSupabase
       .from('pencas')
       .select('id')
       .eq('id', pencaId)
@@ -55,13 +58,13 @@ export async function PUT(
     }
 
     // Desactivar rulesets anteriores
-    await supabase
+    await adminSupabase
       .from('rulesets')
       .update({ is_active: false })
       .eq('penca_id', pencaId);
 
     // Crear nuevo ruleset
-    const { data: newRuleset, error: rulesetError } = await supabase
+    const { data: newRuleset, error: rulesetError } = await adminSupabase
       .from('rulesets')
       .insert({
         penca_id: pencaId,
