@@ -1,6 +1,7 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { createServiceRoleClient } from '@/lib/supabase/client';
 
 export async function DELETE(
   _request: Request,
@@ -26,7 +27,9 @@ export async function DELETE(
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
-  const { data: penca, error: pencaError } = await supabase
+  const adminSupabase = createServiceRoleClient();
+
+  const { data: penca, error: pencaError } = await adminSupabase
     .from('pencas')
     .select('id')
     .eq('slug', params.slug)
@@ -39,7 +42,7 @@ export async function DELETE(
     );
   }
 
-  const { error: deleteError } = await supabase
+  const { error: deleteError } = await adminSupabase
     .from('pencas')
     .delete()
     .eq('id', penca.id);
