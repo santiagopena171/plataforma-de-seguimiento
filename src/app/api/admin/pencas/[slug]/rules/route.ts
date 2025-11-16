@@ -57,6 +57,23 @@ export async function PUT(
       );
     }
 
+    const { data: latestRuleset } = await adminSupabase
+      .from('rulesets')
+      .select('version')
+      .eq('penca_id', pencaId)
+      .order('version', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let targetVersion =
+      typeof version === 'number' && version > 0
+        ? version
+        : (latestRuleset?.version || 0) + 1;
+
+    if (latestRuleset?.version && targetVersion <= latestRuleset.version) {
+      targetVersion = latestRuleset.version + 1;
+    }
+
     // Desactivar rulesets anteriores
     await adminSupabase
       .from('rulesets')
@@ -68,7 +85,7 @@ export async function PUT(
       .from('rulesets')
       .insert({
         penca_id: pencaId,
-        version,
+        version: targetVersion,
         points_top3,
         modalities_enabled,
         lock_minutes_before_start,
