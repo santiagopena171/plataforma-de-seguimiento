@@ -16,9 +16,6 @@ export default function SimplifiedRaceForm({ pencaSlug, pencaId, numParticipants
 
   const [formData, setFormData] = useState({
     venue: '',
-    distance_m: '',
-    start_date: '',
-    start_time: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,6 +24,7 @@ export default function SimplifiedRaceForm({ pencaSlug, pencaId, numParticipants
     setError(null);
 
     try {
+      const today = new Date().toISOString().split('T')[0];
       // 1. Crear la carrera
       const raceResponse = await fetch(`/api/admin/pencas/${pencaSlug}/races`, {
         method: 'POST',
@@ -34,18 +32,19 @@ export default function SimplifiedRaceForm({ pencaSlug, pencaId, numParticipants
         body: JSON.stringify({
           penca_id: pencaId,
           venue: formData.venue,
-          distance_m: parseInt(formData.distance_m),
-          start_at: `${formData.start_date}T${formData.start_time}:00`,
+          distance_m: 1, // Default (must be > 0)
+          start_at: `${today}T12:00:00Z`, // Default (UTC)
         }),
       });
 
       if (!raceResponse.ok) {
-        throw new Error('Error al crear la carrera');
+        const errorData = await raceResponse.json();
+        throw new Error(errorData.error || 'Error al crear la carrera');
       }
 
       const newRace = await raceResponse.json();
 
-      // No crear participantes autom�ticos; redirigir a la pantalla de edici�n
+      // No crear participantes automticos; redirigir a la pantalla de edicin
       router.push(`/admin/penca/${pencaSlug}/race/${newRace.id}/edit`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
@@ -76,49 +75,6 @@ export default function SimplifiedRaceForm({ pencaSlug, pencaId, numParticipants
             onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
             className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             placeholder="Ej: Maroñas, Las Piedras"
-            required
-          />
-        </div>
-
-        {/* Distance */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Distancia (metros)
-          </label>
-          <input
-            type="number"
-            value={formData.distance_m}
-            onChange={(e) => setFormData({ ...formData, distance_m: e.target.value })}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            placeholder="Ej: 1200"
-            required
-          />
-        </div>
-
-        {/* Date */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Fecha
-          </label>
-          <input
-            type="date"
-            value={formData.start_date}
-            onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            required
-          />
-        </div>
-
-        {/* Time */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Hora
-          </label>
-          <input
-            type="time"
-            value={formData.start_time}
-            onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             required
           />
         </div>

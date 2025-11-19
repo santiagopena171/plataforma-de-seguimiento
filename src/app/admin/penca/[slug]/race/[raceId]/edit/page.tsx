@@ -31,12 +31,10 @@ export default function EditRacePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     venue: '',
-    distance_m: '',
     start_date: '',
-    start_time: '',
   });
 
   // Cargar datos de la carrera y caballos
@@ -46,24 +44,20 @@ export default function EditRacePage() {
     async function loadData() {
       try {
         setLoading(true);
-        
+
         // Cargar carrera
         const raceRes = await fetch(`/api/admin/races/${raceId}`);
         if (!raceRes.ok) throw new Error('No se pudo cargar la carrera');
         const raceData = await raceRes.json();
         setRace(raceData);
-        
+
         // Separar fecha y hora
         const startAtDate = new Date(raceData.start_at);
         const date = startAtDate.toISOString().split('T')[0];
-        // Extraer la hora directamente del ISO string para evitar problemas de zona horaria
-        const isoTime = raceData.start_at.split('T')[1].slice(0, 5);
-        
+
         setFormData({
           venue: raceData.venue,
-          distance_m: raceData.distance_m.toString(),
           start_date: date,
-          start_time: isoTime,
         });
 
         // Cargar caballos
@@ -109,7 +103,7 @@ export default function EditRacePage() {
         horse_name: '',
         jockey: '',
       },
-      ]);
+    ]);
   };
 
   const removeHorse = (index: number) => {
@@ -128,17 +122,22 @@ export default function EditRacePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           venue: formData.venue,
-          distance_m: parseInt(formData.distance_m),
-          start_at: `${formData.start_date}T${formData.start_time}:00`,
+          distance_m: 1, // Default (must be > 0)
+          start_at: `${formData.start_date}T12:00:00Z`, // Default (UTC)
         }),
       });
 
       if (!raceRes.ok) {
-        const error = await raceRes.json();
-        throw new Error(error.error || 'Error al actualizar carrera');
+        const text = await raceRes.text();
+        try {
+          const error = JSON.parse(text);
+          throw new Error(error.error || `Error al actualizar carrera (${raceRes.status})`);
+        } catch (e) {
+          throw new Error(`Error al actualizar carrera: ${raceRes.status} ${text}`);
+        }
       }
 
-  // Actualizar caballos solo con número (sin nombre ni jockey)
+      // Actualizar caballos solo con número (sin nombre ni jockey)
       const horsesRes = await fetch(`/api/admin/races/${raceId}/entries`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -153,13 +152,19 @@ export default function EditRacePage() {
       });
 
       if (!horsesRes.ok) {
-        const error = await horsesRes.json();
-        throw new Error(error.error || 'Error al actualizar caballos');
+        const text = await horsesRes.text();
+        try {
+          const error = JSON.parse(text);
+          throw new Error(error.error || `Error al actualizar caballos (${horsesRes.status})`);
+        } catch (e) {
+          throw new Error(`Error al actualizar caballos: ${horsesRes.status} ${text}`);
+        }
       }
 
       // Redirigir de vuelta
       router.push(`/admin/penca/${slug}`);
     } catch (err) {
+      console.error(err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setSubmitting(false);
@@ -230,7 +235,7 @@ export default function EditRacePage() {
           {/* Detalles de la carrera */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Detalles de la carrera</h2>
-            
+
             <div className="space-y-4">
               {/* Venue */}
               <div>
@@ -248,64 +253,13 @@ export default function EditRacePage() {
                   placeholder="ej: Hipódromo Nacional"
                 />
               </div>
-
-              {/* Distance */}
-              <div>
-                <label htmlFor="distance_m" className="block text-sm font-medium text-gray-900">
-                  Distancia (metros)
-                </label>
-                <input
-                  type="number"
-                  name="distance_m"
-                  id="distance_m"
-                  value={formData.distance_m}
-                  onChange={handleChange}
-                  required
-                  min="100"
-                  className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="ej: 2000"
-                />
-              </div>
-
-              {/* Start date/time */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="start_date" className="block text-sm font-medium text-gray-900">
-                    Fecha de inicio
-                  </label>
-                  <input
-                    type="date"
-                    name="start_date"
-                    id="start_date"
-                    value={formData.start_date}
-                    onChange={handleChange}
-                    required
-                    className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="start_time" className="block text-sm font-medium text-gray-900">
-                    Hora de inicio
-                  </label>
-                  <input
-                    type="time"
-                    name="start_time"
-                    id="start_time"
-                    value={formData.start_time}
-                    onChange={handleChange}
-                    required
-                    className="mt-2 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-              </div>
             </div>
           </div>
 
           {/* Caballos */}
           <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Caballos ({horses.length})</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Caballos ({horses.length})</h2>
               <button
                 type="button"
                 onClick={addHorse}

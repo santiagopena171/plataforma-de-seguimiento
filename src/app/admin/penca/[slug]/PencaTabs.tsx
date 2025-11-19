@@ -5,21 +5,22 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import DeleteRaceButton from '@/components/DeleteRaceButton';
 import AddMemberModal from './AddMemberModal';
+import html2canvas from 'html2canvas';
 
 // Función para formatear la hora sin conversión de zona horaria
 function formatRaceTime(isoString: string): string {
   // Extraer solo la parte HH:MM del ISO string
   const timeMatch = isoString.match(/T(\d{2}):(\d{2})/);
   if (!timeMatch) return isoString;
-  
+
   const [_, hourStr, minuteStr] = timeMatch;
   const hour = parseInt(hourStr);
   const minute = parseInt(minuteStr);
-  
+
   // Convertir de 24h a 12h
   let hour12 = hour % 12 || 12;
   const meridiem = hour >= 12 ? 'PM' : 'AM';
-  
+
   return `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${meridiem}`;
 }
 
@@ -96,6 +97,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const [closingRace, setClosingRace] = useState<string | null>(null);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  const [generatingImage, setGeneratingImage] = useState<string | null>(null);
 
   // Filtrar solo miembros no-admin (jugadores reales)
   const actualMembers = memberships?.filter(m => m.role !== 'admin') || [];
@@ -167,6 +169,254 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
     }
   };
 
+  const handleDownloadPredictions = async (raceId: string) => {
+    try {
+      setGeneratingImage(raceId);
+
+      // Fetch predictions data
+      const response = await fetch(`/api/admin/races/${raceId}/predictions-data`);
+      if (!response.ok) {
+        throw new Error('Error al obtener las predicciones');
+      }
+
+      const data = await response.json();
+
+      // Create a temporary div to render the predictions
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.width = '800px';
+      tempDiv.style.padding = '40px';
+      tempDiv.style.backgroundColor = 'white';
+      tempDiv.style.fontFamily = 'Arial, sans-serif';
+
+      // Build the HTML content
+      let html = `
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="font-size: 28px; font-weight: bold; color: #1f2937; margin-bottom: 10px;">
+            ${data.race.pencaName}
+          </h1>
+          <h2 style="font-size: 22px; font-weight: 600; color: #4b5563; margin-bottom: 5px;">
+            Carrera #${data.race.seq}
+          </h2>
+          <p style="font-size: 16px; color: #6b7280; margin-bottom: 5px;">
+            ${data.race.venue} • ${data.race.distance_m}m
+          </p>
+          <p style="font-size: 14px; color: #9ca3af;">
+            ${new Date(data.race.start_at).toLocaleDateString('es-UY', { dateStyle: 'long' })}
+          </p>
+        </div>
+        <div style="border-top: 3px solid #4f46e5; margin-bottom: 30px;"></div>
+        <h3 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 20px; text-align: center;">
+          Predicciones de los Jugadores
+        </h3>
+      `;
+
+      // Add predictions
+      if (data.predictions && data.predictions.length > 0) {
+        html += '<div style="display: grid; gap: 15px;">';
+        data.predictions.forEach((pred: any, index: number) => {
+          html += `
+            <div style="border: 2px solid #e5e7eb; border-radius: 8px; padding: 15px; background-color: #f9fafb;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <p style="font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 5px 0;">
+                    ${pred.playerName}
+                  </p>
+                  <p style="font-size: 14px; color: #6b7280; margin: 0;">
+                    Jugador ${index + 1}
+                  </p>
+                </div>
+                <div style="text-align: right;">
+                  <p style="font-size: 14px; color: #6b7280; margin: 0 0 5px 0;">
+                    Ganador predicho:
+                  </p>
+                  <p style="font-size: 24px; font-weight: bold; color: #4f46e5; margin: 0;">
+                    #${pred.winnerNumber}
+                  </p>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+      } else {
+        html += '<p style="text-align: center; color: #9ca3af; font-size: 16px;">No hay predicciones registradas</p>';
+      }
+
+      tempDiv.innerHTML = html;
+      document.body.appendChild(tempDiv);
+
+      // Convert to canvas and download
+      const canvas = await html2canvas(tempDiv, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+      });
+
+      // Remove temp div
+      document.body.removeChild(tempDiv);
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `predicciones-carrera-${data.race.seq}.jpg`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/jpeg', 0.95);
+
+    } catch (err) {
+      console.error('Error generating image:', err);
+      alert('Error al generar la imagen');
+    } finally {
+      setGeneratingImage(null);
+    }
+  };
+
+  const handleDownloadResults = async (raceId: string) => {
+    try {
+      setGeneratingImage(raceId);
+
+      // Fetch results data
+      const response = await fetch(`/api/admin/races/${raceId}/results-data`);
+      if (!response.ok) {
+        throw new Error('Error al obtener los resultados');
+      }
+
+      const data = await response.json();
+
+      // Create a temporary div to render the results
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.width = '800px';
+      tempDiv.style.padding = '40px';
+      tempDiv.style.backgroundColor = 'white';
+      tempDiv.style.fontFamily = 'Arial, sans-serif';
+
+      // Build the HTML content
+      let html = `
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="font-size: 28px; font-weight: bold; color: #1f2937; margin-bottom: 10px;">
+            ${data.race.pencaName}
+          </h1>
+          <h2 style="font-size: 22px; font-weight: 600; color: #4b5563; margin-bottom: 5px;">
+            Carrera #${data.race.seq} - Resultados
+          </h2>
+          <p style="font-size: 16px; color: #6b7280; margin-bottom: 5px;">
+            ${data.race.venue} • ${data.race.distance_m}m
+          </p>
+          <p style="font-size: 14px; color: #9ca3af;">
+            ${new Date(data.race.start_at).toLocaleDateString('es-UY', { dateStyle: 'long' })}
+          </p>
+        </div>
+        <div style="border-top: 3px solid #4f46e5; margin-bottom: 30px;"></div>
+      `;
+
+      // Add official result
+      if (data.officialResult && data.officialResult.length > 0) {
+        html += `
+          <div style="background-color: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+            <h3 style="font-size: 18px; font-weight: 600; color: #92400e; margin-bottom: 15px; text-align: center;">
+              🏆 Resultado Oficial
+            </h3>
+            <div style="display: grid; gap: 10px;">
+        `;
+
+        data.officialResult.forEach((result: any) => {
+          const medal = result.position === 1 ? '🥇' : result.position === 2 ? '🥈' : '🥉';
+          html += `
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 24px;">${medal}</span>
+              <span style="font-size: 16px; font-weight: 600; color: #92400e;">
+                ${result.position}° - Caballo #${result.number}
+              </span>
+            </div>
+          `;
+        });
+
+        html += `
+            </div>
+          </div>
+        `;
+      }
+
+      // Add predictions and scores
+      html += `
+        <h3 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 20px; text-align: center;">
+          Predicciones y Puntos
+        </h3>
+      `;
+
+      if (data.predictions && data.predictions.length > 0) {
+        html += '<div style="display: grid; gap: 15px;">';
+        data.predictions.forEach((pred: any, index: number) => {
+          const bgColor = index === 0 ? '#fef3c7' : index === 1 ? '#e0e7ff' : index === 2 ? '#fce7f3' : '#f9fafb';
+          const borderColor = index === 0 ? '#f59e0b' : index === 1 ? '#6366f1' : index === 2 ? '#ec4899' : '#e5e7eb';
+
+          html += `
+            <div style="border: 2px solid ${borderColor}; border-radius: 8px; padding: 15px; background-color: ${bgColor};">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div>
+                  <p style="font-size: 18px; font-weight: 600; color: #1f2937; margin: 0 0 5px 0;">
+                    ${index + 1}. ${pred.playerName}
+                  </p>
+                  <p style="font-size: 14px; color: #6b7280; margin: 0;">
+                    Predicción: Caballo #${pred.winnerNumber}
+                  </p>
+                </div>
+                <div style="text-align: right;">
+                  <p style="font-size: 28px; font-weight: bold; color: #4f46e5; margin: 0;">
+                    ${pred.points}
+                  </p>
+                  <p style="font-size: 12px; color: #6b7280; margin: 0;">
+                    puntos
+                  </p>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+      } else {
+        html += '<p style="text-align: center; color: #9ca3af; font-size: 16px;">No hay predicciones registradas</p>';
+      }
+
+      tempDiv.innerHTML = html;
+      document.body.appendChild(tempDiv);
+
+      // Convert to canvas and download
+      const canvas = await html2canvas(tempDiv, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+      });
+
+      // Remove temp div
+      document.body.removeChild(tempDiv);
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `resultados-carrera-${data.race.seq}.jpg`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/jpeg', 0.95);
+
+    } catch (err) {
+      console.error('Error generating results image:', err);
+      alert('Error al generar la imagen de resultados');
+    } finally {
+      setGeneratingImage(null);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow">
       {/* Tabs Navigation */}
@@ -177,31 +427,28 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
         >
           <button
             onClick={() => setActiveTab('races')}
-            className={`flex-shrink-0 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'races'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+            className={`flex-shrink-0 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'races'
+              ? 'border-indigo-500 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
           >
             Carreras ({races?.length || 0})
           </button>
           <button
             onClick={() => setActiveTab('members')}
-            className={`flex-shrink-0 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'members'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+            className={`flex-shrink-0 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'members'
+              ? 'border-indigo-500 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
           >
             Miembros ({actualMembers.length}/{numParticipants})
           </button>
           <button
             onClick={() => setActiveTab('leaderboard')}
-            className={`flex-shrink-0 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'leaderboard'
-                ? 'border-indigo-500 text-indigo-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+            className={`flex-shrink-0 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'leaderboard'
+              ? 'border-indigo-500 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
           >
             Tabla de Posiciones
           </button>
@@ -237,119 +484,132 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                   const predsForRace = (predictions || []).filter((p: any) => p.race_id === race.id);
                   // Contar predicciones únicas por membership_id o user_id
                   const uniquePredKeys = new Set(predsForRace.map((p: any) => p.membership_id || p.user_id)).size;
-                  
+
                   return (
-                  <div
-                    key={race.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-lg font-bold text-gray-900">
-                            Carrera #{race.seq}
-                          </span>
-                          <span
-                            className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                              race.status === 'scheduled'
+                    <div
+                      key={race.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3">
+                            <span className="text-lg font-bold text-gray-900">
+                              Carrera #{race.seq}
+                            </span>
+                            <span
+                              className={`px-2 py-1 text-xs font-semibold rounded-full ${race.status === 'scheduled'
                                 ? 'bg-blue-100 text-blue-800'
                                 : race.status === 'closed'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-purple-100 text-purple-800'
-                            }`}
-                          >
-                            {race.status}
-                          </span>
-                        </div>
-                        <div className="mt-2 space-y-1 text-sm text-gray-600">
-                          <p>
-                            📍 {race.venue} • 📏 {race.distance_m}m
-                          </p>
-                          <p>
-                            🕐{' '}
-                            {new Date(race.start_at).toLocaleDateString('es-UY', {
-                              dateStyle: 'medium',
-                            })}, {formatRaceTime(race.start_at)}
-                          </p>
-                          <p>🐴 {race.race_entries?.length || 0} caballos</p>
-                        </div>
-
-                        {/* Resultado Oficial */}
-                        {raceResult && raceResult.official_order && raceResult.official_order.length > 0 && (
-                          <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                            <p className="text-sm font-bold text-yellow-900 mb-2">🏆 Resultado Oficial:</p>
-                            <div className="space-y-1">
-                              {raceResult.official_order.slice(0, 3).map((entryId: string, index: number) => {
-                                const entry = race.race_entries?.find((e: any) => e.id === entryId);
-                                return entry ? (
-                                  <p key={entryId} className="text-sm text-yellow-900">
-                                    {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} {index + 1}°: <span className="font-bold">Caballo #{entry.program_number}</span>
-                                  </p>
-                                ) : null;
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/admin/penca/${pencaSlug}/race/${race.id}/preview`}
-                          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          Ver
-                        </Link>
-                        <Link
-                          href={`/admin/penca/${pencaSlug}/race/${race.id}/edit`}
-                          className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                        >
-                          Editar
-                        </Link>
-                        
-                        {/* Botón para cerrar/abrir predicciones */}
-                        {race.status === 'result_published' ? (
-                          <span className="text-sm text-gray-400 font-medium cursor-not-allowed">
-                            Resultado Publicado
-                          </span>
-                        ) : race.status === 'closed' ? (
-                          <button
-                            onClick={() => handleOpenPredictions(race.id)}
-                            disabled={closingRace === race.id}
-                            className="text-sm text-orange-600 hover:text-orange-800 font-medium disabled:opacity-50"
-                          >
-                            {closingRace === race.id ? 'Abriendo...' : 'Abrir Predicciones'}
-                          </button>
-                        ) : (
-                          // Si ya hay predicciones (para todos los miembros) mostrar etiqueta en vez de link
-                          uniquePredKeys >= actualMembers.length ? (
-                            <span className="text-sm text-gray-500 font-medium">Predicciones Creadas</span>
-                          ) : (
-                            // Enlace para que el admin cree/ingrese predicciones para todos los miembros
-                            <Link
-                              href={`/admin/penca/${pencaSlug}/race/${race.id}/predictions`}
-                              className="text-sm text-red-600 hover:text-red-800 font-medium"
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-purple-100 text-purple-800'
+                                }`}
                             >
-                              Crear Predicciones
-                            </Link>
-                          )
-                        )}
-                        
-                        {/* Botón para publicar resultado */}
-                        {race.status === 'result_published' ? (
-                          <span className="text-sm text-gray-400 font-medium cursor-not-allowed">
-                            Resultado Publicado
-                          </span>
-                        ) : (
+                              {race.status}
+                            </span>
+                          </div>
+                          <div className="mt-2 space-y-1 text-sm text-gray-600">
+                            <p>
+                              📍 {race.venue} • 📏 {race.distance_m}m
+                            </p>
+                            <p>
+                              🕐{' '}
+                              {new Date(race.start_at).toLocaleDateString('es-UY', {
+                                dateStyle: 'medium',
+                              })}, {formatRaceTime(race.start_at)}
+                            </p>
+                            <p>🐴 {race.race_entries?.length || 0} caballos</p>
+                          </div>
+
+                          {/* Resultado Oficial */}
+                          {raceResult && raceResult.official_order && raceResult.official_order.length > 0 && (
+                            <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                              <p className="text-sm font-bold text-yellow-900 mb-2">🏆 Resultado Oficial:</p>
+                              <div className="space-y-1">
+                                {raceResult.official_order.slice(0, 3).map((entryId: string, index: number) => {
+                                  const entry = race.race_entries?.find((e: any) => e.id === entryId);
+                                  return entry ? (
+                                    <p key={entryId} className="text-sm text-yellow-900">
+                                      {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} {index + 1}°: <span className="font-bold">Caballo #{entry.program_number}</span>
+                                    </p>
+                                  ) : null;
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
                           <Link
-                            href={`/admin/penca/${pencaSlug}/race/${race.id}/publish`}
-                            className="text-sm text-green-600 hover:text-green-800 font-medium"
+                            href={`/admin/penca/${pencaSlug}/race/${race.id}/preview`}
+                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
                           >
-                            Publicar Resultado
+                            Ver
                           </Link>
-                        )}
-                        <DeleteRaceButton raceId={race.id} slug={pencaSlug} />
+                          <Link
+                            href={`/admin/penca/${pencaSlug}/race/${race.id}/edit`}
+                            className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                          >
+                            Editar
+                          </Link>
+
+                          {/* Botón para cerrar/abrir predicciones */}
+                          {race.status === 'result_published' ? (
+                            <button
+                              onClick={() => handleDownloadResults(race.id)}
+                              disabled={generatingImage === race.id}
+                              className="text-sm text-green-600 hover:text-green-800 font-medium disabled:opacity-50"
+                            >
+                              {generatingImage === race.id ? 'Generando...' : 'Resultado Publicado'}
+                            </button>
+                          ) : race.status === 'closed' ? (
+                            <button
+                              onClick={() => handleOpenPredictions(race.id)}
+                              disabled={closingRace === race.id}
+                              className="text-sm text-orange-600 hover:text-orange-800 font-medium disabled:opacity-50"
+                            >
+                              {closingRace === race.id ? 'Abriendo...' : 'Abrir Predicciones'}
+                            </button>
+                          ) : (
+                            // Si ya hay predicciones (para todos los miembros) mostrar botón para descargar
+                            uniquePredKeys >= actualMembers.length ? (
+                              <button
+                                onClick={() => handleDownloadPredictions(race.id)}
+                                disabled={generatingImage === race.id}
+                                className="text-sm text-gray-600 hover:text-gray-800 font-medium disabled:opacity-50"
+                              >
+                                {generatingImage === race.id ? 'Generando...' : 'Predicciones Creadas'}
+                              </button>
+                            ) : (
+                              // Enlace para que el admin cree/ingrese predicciones para todos los miembros
+                              <Link
+                                href={`/admin/penca/${pencaSlug}/race/${race.id}/predictions`}
+                                className="text-sm text-red-600 hover:text-red-800 font-medium"
+                              >
+                                Crear Predicciones
+                              </Link>
+                            )
+                          )}
+
+                          {/* Botón para publicar resultado */}
+                          {race.status === 'result_published' ? (
+                            <button
+                              onClick={() => handleDownloadResults(race.id)}
+                              disabled={generatingImage === race.id}
+                              className="text-sm text-green-600 hover:text-green-800 font-medium disabled:opacity-50"
+                            >
+                              {generatingImage === race.id ? 'Generando...' : 'Resultado Publicado'}
+                            </button>
+                          ) : (
+                            <Link
+                              href={`/admin/penca/${pencaSlug}/race/${race.id}/publish`}
+                              className="text-sm text-green-600 hover:text-green-800 font-medium"
+                            >
+                              Publicar Resultado
+                            </Link>
+                          )}
+                          <DeleteRaceButton raceId={race.id} slug={pencaSlug} />
+                        </div>
                       </div>
                     </div>
-                  </div>
                   );
                 })}
               </div>
@@ -401,11 +661,10 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span
-                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                member.role === 'admin'
-                                  ? 'bg-purple-100 text-purple-800'
-                                  : 'bg-green-100 text-green-800'
-                              }`}
+                              className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${member.role === 'admin'
+                                ? 'bg-purple-100 text-purple-800'
+                                : 'bg-green-100 text-green-800'
+                                }`}
                             >
                               {member.role}
                             </span>
@@ -449,7 +708,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                               />
                             </svg>
                             <p className="text-gray-400 text-center mb-2">Espacio disponible</p>
-                            <button 
+                            <button
                               onClick={() => setIsAddMemberModalOpen(true)}
                               className="mt-2 px-4 py-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors"
                             >
@@ -488,7 +747,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                             />
                           </svg>
                           <p className="text-gray-400 text-center mb-2">Espacio disponible</p>
-                          <button 
+                          <button
                             onClick={() => setIsAddMemberModalOpen(true)}
                             className="mt-2 px-4 py-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium border border-indigo-300 rounded-md hover:bg-indigo-50 transition-colors"
                           >
@@ -563,7 +822,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                               const memberRaceScore = scores.find(s => ((s.user_id && s.user_id === member.user_id) || (s as any).membership_id === member.id) && s.race_id === race.id);
                               const memberPrediction = predictions.find(p => ((p.user_id && p.user_id === member.user_id) || (p as any).membership_id === member.id) && p.race_id === race.id);
                               const raceResult = raceResults.find(r => r.race_id === race.id);
-                              
+
                               return (
                                 <div key={race.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between mb-2">
@@ -571,13 +830,12 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                                       <p className="font-semibold text-gray-900">Carrera #{race.seq}</p>
                                       <p className="text-xs text-gray-600">{race.venue} • {race.distance_m}m</p>
                                     </div>
-                                    <span className={`text-sm font-bold px-2 py-1 rounded ${
-                                      memberRaceScore?.points_total 
-                                        ? 'bg-green-100 text-green-700' 
-                                        : race.status === 'result_published'
+                                    <span className={`text-sm font-bold px-2 py-1 rounded ${memberRaceScore?.points_total
+                                      ? 'bg-green-100 text-green-700'
+                                      : race.status === 'result_published'
                                         ? 'bg-red-100 text-red-700'
                                         : 'bg-gray-200 text-gray-700'
-                                    }`}>
+                                      }`}>
                                       {memberRaceScore?.points_total || 0} pts
                                     </span>
                                   </div>
@@ -622,7 +880,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                                           </p>
                                         </div>
                                       )}
-                                      
+
                                       {/* Exacta Pick */}
                                       {memberPrediction.exacta_pick && Array.isArray(memberPrediction.exacta_pick) && memberPrediction.exacta_pick.length > 0 && (
                                         <div className="bg-white rounded p-2 text-xs">
@@ -639,7 +897,7 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                                           </div>
                                         </div>
                                       )}
-                                      
+
                                       {/* Trifecta Pick */}
                                       {memberPrediction.trifecta_pick && Array.isArray(memberPrediction.trifecta_pick) && memberPrediction.trifecta_pick.length > 0 && (
                                         <div className="bg-white rounded p-2 text-xs">

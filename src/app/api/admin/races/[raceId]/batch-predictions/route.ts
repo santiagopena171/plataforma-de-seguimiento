@@ -1,4 +1,5 @@
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -28,6 +29,18 @@ export async function POST(
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
+  // Crear cliente admin para bypass RLS
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
+
   try {
     const body = await req.json();
     const { predictions } = body;
@@ -40,7 +53,7 @@ export async function POST(
     }
 
     // Verificar que la carrera existe y pertenece a una penca del admin
-    const { data: race } = await supabase
+    const { data: race } = await adminClient
       .from('races')
       .select('id, penca_id')
       .eq('id', params.raceId)
@@ -51,7 +64,7 @@ export async function POST(
     }
 
     // Eliminar predicciones existentes de esta carrera
-    await supabase
+    await adminClient
       .from('predictions')
       .delete()
       .eq('race_id', params.raceId);
@@ -68,7 +81,7 @@ export async function POST(
       is_locked: true, // Las predicciones ingresadas por admin están bloqueadas
     }));
 
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from('predictions')
       .insert(predictionsToInsert)
       .select();

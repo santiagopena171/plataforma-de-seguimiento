@@ -33,8 +33,20 @@ export default async function AdminPredictionsPage({ params }: PageProps) {
     redirect('/dashboard');
   }
 
+  // Obtener el penca ID
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
+
   // Obtener la carrera
-  const { data: race } = await supabase
+  const { data: race } = await adminClient
     .from('races')
     .select(`
       *,
@@ -51,18 +63,7 @@ export default async function AdminPredictionsPage({ params }: PageProps) {
     notFound();
   }
 
-  // Obtener el penca ID
   const pencaId = race.pencas.id;
-  const adminClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    }
-  );
 
   const { data: participants, error: participantsError } = await adminClient
     .from('race_entries')
@@ -89,17 +90,17 @@ export default async function AdminPredictionsPage({ params }: PageProps) {
   // Obtener nombres de usuario para no-guests
   let userProfiles: Record<string, any> = {};
   const userIds = memberships?.filter((m: any) => m.user_id)?.map((m: any) => m.user_id) || [];
-  
+
   console.log('User IDs to fetch:', userIds);
-  
+
   if (userIds.length > 0) {
     const { data: profiles } = await adminClient
       .from('profiles')
       .select('id, email, full_name')
       .in('id', userIds);
-    
+
     console.log('Fetched profiles:', profiles);
-    
+
     profiles?.forEach((p: any) => {
       userProfiles[p.id] = p;
     });
