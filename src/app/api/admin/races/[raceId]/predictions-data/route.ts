@@ -169,7 +169,7 @@ export async function GET(
                 venue: race.venue,
                 distance_m: race.distance_m,
                 start_at: race.start_at,
-                pencaName: race.pencas.name,
+                pencaName: (race.pencas as any).name,
             },
             predictions: predictionsWithNames,
         });
