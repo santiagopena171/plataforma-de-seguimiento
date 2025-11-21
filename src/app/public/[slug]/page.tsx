@@ -41,9 +41,9 @@ const formatRaceTime = (race: any) => {
   const date = getRaceStartDate(race);
   return date
     ? date.toLocaleTimeString('es-UY', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })
+      hour: '2-digit',
+      minute: '2-digit',
+    })
     : null;
 };
 
@@ -317,10 +317,10 @@ export default async function PublicPencaPage({ params }: PageProps) {
     const joinedLabel = mem?.joined_at
       ? `Se unió ${new Date(mem.joined_at).toLocaleDateString('es-UY')}`
       : fallbackMembership?.joined_at
-      ? `Se unió ${new Date(fallbackMembership.joined_at).toLocaleDateString('es-UY')}`
-      : p.userId
-      ? 'Participante registrado'
-      : 'Invitado';
+        ? `Se unió ${new Date(fallbackMembership.joined_at).toLocaleDateString('es-UY')}`
+        : p.userId
+          ? 'Participante registrado'
+          : 'Invitado';
     const membershipId = mem?.id || fallbackMembership?.id || null;
 
     return {
@@ -396,7 +396,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
               🏆 Tabla de Posiciones
             </h2>
           </div>
-          
+
           {leaderboardCards.length === 0 ? (
             <div className="px-4 sm:px-6 py-8 text-center text-gray-500">
               {(!memberships || memberships.length === 0) ? (
@@ -475,19 +475,16 @@ export default async function PublicPencaPage({ params }: PageProps) {
                 const result = resultsMap[race.id];
                 const raceDateLabel = formatRaceDate(race);
                 const raceTimeLabel = formatRaceTime(race);
-                
+
                 return (
                   <div key={race.id} className="px-4 sm:px-6 py-4">
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="text-lg font-medium text-gray-900">
-                          {race.venue}
+                          Carrera {race.seq} - {race.venue}
                         </h3>
-                        <p className="text-sm text-gray-500 mt-1">
-                          {race.distance_m}m • {raceDateLabel || 'Fecha a confirmar'}
-                          {raceTimeLabel ? ` ${raceTimeLabel}` : ''}
-                        </p>
-                        
+
+
                         {result && (
                           <div className="mt-3 flex gap-4 text-sm">
                             <span className="text-gray-700">
