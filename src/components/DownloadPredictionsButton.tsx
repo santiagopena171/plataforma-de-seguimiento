@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
 import toast from 'react-hot-toast';
 
 interface DownloadPredictionsButtonProps {
@@ -27,38 +27,85 @@ export default function DownloadPredictionsButton({ slug }: DownloadPredictionsB
                 throw new Error(data.error);
             }
 
-            // Prepare data for Excel
-            // Headers: Participante, Carrera 1, Carrera 2, ...
-            const headers = ['Participante', ...data.races.map((r: any) => r.name)];
+            // Create temporary div for rendering
+            const tempDiv = document.createElement('div');
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.left = '-9999px';
+            tempDiv.style.padding = '40px';
+            tempDiv.style.backgroundColor = 'white';
+            tempDiv.style.fontFamily = 'Arial, sans-serif';
 
-            // Rows
-            const rows = data.participants.map((p: any) => {
-                const row: any[] = [p.name];
-                data.races.forEach((r: any) => {
-                    row.push(p.predictions[r.id] || '-');
-                });
-                return row;
+            // Build HTML table
+            let html = `
+                <div style="margin-bottom: 20px;">
+                    <h1 style="font-size: 24px; font-weight: bold; color: #1f2937; margin: 0;">${data.pencaName}</h1>
+                    <h2 style="font-size: 18px; color: #6b7280; margin-top: 8px;">Resumen de Predicciones</h2>
+                </div>
+                <table style="border-collapse: collapse; font-size: 14px; width: auto;">
+                    <thead>
+                        <tr style="background-color: #f3f4f6;">
+                            <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: left; font-weight: 600;">Participante</th>
+            `;
+
+            // Add race headers
+            data.races.forEach((race: any) => {
+                html += `<th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; font-weight: 600;">${race.name}</th>`;
             });
 
-            // Create worksheet
-            const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+            html += `
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
 
-            // Set column widths
-            const wscols = [{ wch: 30 }]; // Participante column width
-            data.races.forEach(() => wscols.push({ wch: 25 })); // Race columns width
-            ws['!cols'] = wscols;
+            // Add participant rows
+            data.participants.forEach((participant: any, index: number) => {
+                html += `
+                    <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
+                        <td style="border: 1px solid #d1d5db; padding: 12px 16px; font-weight: 500;">${participant.name}</td>
+                `;
 
-            // Create workbook
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Predicciones");
+                data.races.forEach((race: any) => {
+                    const prediction = participant.predictions[race.id] || '-';
+                    html += `<td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center;">${prediction}</td>`;
+                });
 
-            // Generate Excel file
-            XLSX.writeFile(wb, `Predicciones_${data.pencaName.replace(/\s+/g, '_')}.xlsx`);
+                html += `</tr>`;
+            });
 
-            toast.success('Archivo descargado con éxito');
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            tempDiv.innerHTML = html;
+            document.body.appendChild(tempDiv);
+
+            // Convert to canvas
+            const canvas = await html2canvas(tempDiv, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+            });
+
+            // Remove temp div
+            document.body.removeChild(tempDiv);
+
+            // Convert to blob and download
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Predicciones_${data.pencaName.replace(/\\s+/g, '_')}.jpg`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast.success('Imagen descargada con éxito');
+                }
+            }, 'image/jpeg', 0.95);
+
         } catch (error) {
-            console.error('Error downloading excel:', error);
-            toast.error('Error al descargar el archivo');
+            console.error('Error downloading image:', error);
+            toast.error('Error al descargar la imagen');
         } finally {
             setLoading(false);
         }

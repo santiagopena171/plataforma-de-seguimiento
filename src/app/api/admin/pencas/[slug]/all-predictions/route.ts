@@ -103,7 +103,7 @@ export async function GET(
 
         // Procesar participantes
         const participants = memberships?.map((m: any) => {
-            let name = 'Desconocido';
+            let name = '';
             if (m.guest_name) {
                 name = m.guest_name;
             } else if (m.user_id && userProfiles[m.user_id]) {
@@ -122,10 +122,10 @@ export async function GET(
                 if (pred) {
                     const entry = entries?.find((e: any) => e.id === pred.winner_pick);
                     if (entry) {
-                        // Format: Name #Number
-                        playerPredictions[race.id] = `${entry.label} #${entry.program_number}`;
+                        // Format: Caballo #Number
+                        playerPredictions[race.id] = `Caballo #${entry.program_number}`;
                     } else {
-                        playerPredictions[race.id] = 'Caballo desconocido';
+                        playerPredictions[race.id] = '-';
                     }
                 } else {
                     playerPredictions[race.id] = '-';
@@ -139,8 +139,9 @@ export async function GET(
             };
         }) || [];
 
-        // Ordenar participantes por nombre
-        participants.sort((a, b) => a.name.localeCompare(b.name));
+        // Filtrar participantes sin nombre y ordenar por nombre
+        const validParticipants = participants.filter(p => p.name !== '');
+        validParticipants.sort((a, b) => a.name.localeCompare(b.name));
 
         return NextResponse.json({
             pencaName: penca.name,
@@ -149,7 +150,7 @@ export async function GET(
                 name: `Carrera ${r.seq} - ${r.venue}`,
                 seq: r.seq
             })),
-            participants
+            participants: validParticipants
         });
 
     } catch (err) {
