@@ -277,54 +277,111 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
     }
   };
 
-  const handleExportLeaderboard = () => {
+  const handleExportLeaderboard = async () => {
     try {
-      // Preparar datos para Excel
+      setGeneratingImage('leaderboard');
+
+      // Filtrar solo carreras con resultados publicados
+      const publishedRaces = races.filter((race: Race) => race.status === 'result_published');
+
+      // Preparar datos de la tabla
       const leaderboardData = actualMembers
         .map((member) => {
           const memberScores = scores?.filter((s: Score) => (s.user_id && s.user_id === member.user_id) || (s as any).membership_id === member.id) || [];
           const totalPoints = memberScores.reduce((sum, score) => sum + (score.points_total || 0), 0);
 
-          // Crear objeto base con nombre y total
-          const row: any = {
-            'Jugador': member.guest_name || member.profiles?.display_name || 'Sin nombre',
-            'Total': totalPoints
+          return {
+            member,
+            memberScores,
+            totalPoints
           };
-
-          // Agregar puntos por cada carrera
-          races.forEach((race) => {
-            const raceScore = memberScores.find(s => s.race_id === race.id);
-            row[`Carrera #${race.seq}`] = raceScore?.points_total || 0;
-          });
-
-          return { ...row, totalPoints };
         })
-        .sort((a, b) => b.totalPoints - a.totalPoints)
-        .map((row, index) => {
-          const { totalPoints, ...rest } = row;
-          return { 'Posición': index + 1, ...rest };
+        .sort((a, b) => b.totalPoints - a.totalPoints);
+
+      // Crear div temporal para renderizar la tabla
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.padding = '40px';
+      tempDiv.style.backgroundColor = 'white';
+      tempDiv.style.fontFamily = 'Arial, sans-serif';
+
+      // Construir HTML de la tabla
+      let html = `
+        <table style="border-collapse: collapse; font-size: 14px; width: auto;">
+          <thead>
+            <tr style="background-color: #f3f4f6;">
+              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: left; font-weight: 600;">Posición</th>
+              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: left; font-weight: 600;">Jugador</th>
+              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; font-weight: 600; background-color: #10b981; color: white;">Total</th>
+      `;
+
+      // Agregar columnas para cada carrera publicada
+      publishedRaces.forEach((race: Race) => {
+        html += `<th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; font-weight: 600;">Carrera #${race.seq}</th>`;
+      });
+
+      html += `
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      // Agregar filas de jugadores
+      leaderboardData.forEach(({ member, memberScores, totalPoints }, index) => {
+        const playerName = member.guest_name || member.profiles?.display_name || 'Sin nombre';
+
+        html += `
+          <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
+            <td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center;">${index + 1}</td>
+            <td style="border: 1px solid #d1d5db; padding: 12px 16px;">${playerName}</td>
+            <td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; background-color: #d1fae5; font-weight: 600;">${totalPoints}</td>
+        `;
+
+        // Agregar puntos por cada carrera publicada
+        publishedRaces.forEach((race: Race) => {
+          const raceScore = memberScores.find(s => s.race_id === race.id);
+          const points = raceScore?.points_total || 0;
+          html += `<td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center;">${points}</td>`;
         });
 
-      // Crear workbook y worksheet
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(leaderboardData);
+        html += `</tr>`;
+      });
 
-      // Ajustar ancho de columnas
-      const colWidths = [
-        { wch: 10 }, // Posición
-        { wch: 25 }, // Jugador
-        { wch: 10 }, // Total
-      ];
-      races.forEach(() => colWidths.push({ wch: 12 })); // Carreras
-      ws['!cols'] = colWidths;
+      html += `
+          </tbody>
+        </table>
+      `;
 
-      XLSX.utils.book_append_sheet(wb, ws, 'Tabla de Posiciones');
+      tempDiv.innerHTML = html;
+      document.body.appendChild(tempDiv);
 
-      // Descargar archivo
-      XLSX.writeFile(wb, `tabla-posiciones-${pencaSlug}.xlsx`);
+      // Convertir a canvas y descargar
+      const canvas = await html2canvas(tempDiv, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+      });
+
+      // Eliminar div temporal
+      document.body.removeChild(tempDiv);
+
+      // Convertir a blob y descargar
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `tabla-posiciones-${pencaSlug}.jpg`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/jpeg', 0.95);
+
     } catch (err) {
       console.error('Error exporting leaderboard:', err);
       alert('Error al exportar la tabla de posiciones');
+    } finally {
+      setGeneratingImage(null);
     }
   };
 
