@@ -1,6 +1,7 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(
   request: NextRequest,
@@ -27,12 +28,24 @@ export async function POST(
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
+  // Crear cliente admin para bypass RLS
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
+
   try {
     const body = await request.json();
     const { positions, raceId, pencaId } = body;
 
     // Obtener la carrera con su penca y ruleset activo
-    const { data: race, error: raceError } = await supabase
+    const { data: race, error: raceError } = await adminClient
       .from('races')
       .select(`
         *,
@@ -66,21 +79,21 @@ export async function POST(
         { status: 400 }
       );
     }
-      const fourthPlace = Object.entries(positions).find(([, pos]) => pos === 4)?.[0];
+    const fourthPlace = Object.entries(positions).find(([, pos]) => pos === 4)?.[0];
 
-      if (!firstPlace || !secondPlace || !thirdPlace || !fourthPlace) {
-        return NextResponse.json(
-          { error: 'Faltan los primeros 4 lugares' },
-          { status: 400 }
-        );
-      }
+    if (!firstPlace || !secondPlace || !thirdPlace || !fourthPlace) {
+      return NextResponse.json(
+        { error: 'Faltan los primeros 4 lugares' },
+        { status: 400 }
+      );
+    }
 
     // Crear o actualizar el resultado de la carrera
-    const { error: resultError } = await supabase
+    const { error: resultError } = await adminClient
       .from('race_results')
       .upsert({
         race_id: raceId,
-         official_order: [firstPlace, secondPlace, thirdPlace, fourthPlace],
+        official_order: [firstPlace, secondPlace, thirdPlace, fourthPlace],
         published_at: new Date().toISOString(),
         published_by: session.user.id,
       }, {
@@ -96,7 +109,7 @@ export async function POST(
     }
 
     // Actualizar el estado de la carrera a result_published
-    const { error: updateError } = await supabase
+    const { error: updateError } = await adminClient
       .from('races')
       .update({ status: 'result_published' })
       .eq('id', raceId);
@@ -111,7 +124,7 @@ export async function POST(
       const helper = await import('../../../../../../lib/calculateScores');
       // helper exports default and named; prefer named
       const calculateScores = helper.calculateScores || helper.default;
-      await calculateScores(supabase, race.penca_id, raceId, officialOrder);
+      await calculateScores(adminClient, race.penca_id, raceId, officialOrder);
     } catch (err) {
       console.error('Error calculating scores with helper:', err);
       return NextResponse.json({ error: 'Error al calcular puntos' }, { status: 500 });

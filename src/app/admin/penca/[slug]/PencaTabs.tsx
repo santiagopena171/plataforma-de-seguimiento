@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import DeleteRaceButton from '@/components/DeleteRaceButton';
 import AddMemberModal from './AddMemberModal';
 import html2canvas from 'html2canvas';
+import * as XLSX from 'xlsx';
 
 // Función para formatear la hora sin conversión de zona horaria
 function formatRaceTime(isoString: string): string {
@@ -273,6 +274,57 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
       alert('Error al generar la imagen');
     } finally {
       setGeneratingImage(null);
+    }
+  };
+
+  const handleExportLeaderboard = () => {
+    try {
+      // Preparar datos para Excel
+      const leaderboardData = actualMembers
+        .map((member) => {
+          const memberScores = scores?.filter((s: Score) => (s.user_id && s.user_id === member.user_id) || (s as any).membership_id === member.id) || [];
+          const totalPoints = memberScores.reduce((sum, score) => sum + (score.points_total || 0), 0);
+
+          // Crear objeto base con nombre y total
+          const row: any = {
+            'Jugador': member.guest_name || member.profiles?.display_name || 'Sin nombre',
+            'Total': totalPoints
+          };
+
+          // Agregar puntos por cada carrera
+          races.forEach((race) => {
+            const raceScore = memberScores.find(s => s.race_id === race.id);
+            row[`Carrera #${race.seq}`] = raceScore?.points_total || 0;
+          });
+
+          return { ...row, totalPoints };
+        })
+        .sort((a, b) => b.totalPoints - a.totalPoints)
+        .map((row, index) => {
+          const { totalPoints, ...rest } = row;
+          return { 'Posición': index + 1, ...rest };
+        });
+
+      // Crear workbook y worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(leaderboardData);
+
+      // Ajustar ancho de columnas
+      const colWidths = [
+        { wch: 10 }, // Posición
+        { wch: 25 }, // Jugador
+        { wch: 10 }, // Total
+      ];
+      races.forEach(() => colWidths.push({ wch: 12 })); // Carreras
+      ws['!cols'] = colWidths;
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Tabla de Posiciones');
+
+      // Descargar archivo
+      XLSX.writeFile(wb, `tabla-posiciones-${pencaSlug}.xlsx`);
+    } catch (err) {
+      console.error('Error exporting leaderboard:', err);
+      alert('Error al exportar la tabla de posiciones');
     }
   };
 
@@ -765,7 +817,18 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
         {/* Leaderboard Tab */}
         {activeTab === 'leaderboard' && (
           <div className="p-4 sm:p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Tabla de Posiciones</h3>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Tabla de Posiciones</h3>
+              <button
+                onClick={handleExportLeaderboard}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                <svg className="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Exportar
+              </button>
+            </div>
             {actualMembers.length > 0 ? (
               <div className="space-y-6">
                 {actualMembers
