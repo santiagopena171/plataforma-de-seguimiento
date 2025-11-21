@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import LogoutButton from '@/components/LogoutButton';
 import PublishResultForm from './PublishResultForm';
+import { createClient } from '@supabase/supabase-js';
 
 interface PageProps {
   params: {
@@ -14,7 +15,7 @@ interface PageProps {
 
 export default async function PublishResultPage({ params }: PageProps) {
   const supabase = createServerComponentClient({ cookies });
-  
+
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -34,8 +35,20 @@ export default async function PublishResultPage({ params }: PageProps) {
     redirect('/dashboard');
   }
 
-  // Obtener la carrera con sus caballos
-  const { data: race, error: raceError } = await supabase
+  // Crear cliente admin para bypass RLS
+  const adminClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    }
+  );
+
+  // Obtener la carrera con sus caballos usando admin client
+  const { data: race, error: raceError } = await adminClient
     .from('races')
     .select(`
       *,
@@ -57,11 +70,15 @@ export default async function PublishResultPage({ params }: PageProps) {
     .single();
 
   if (raceError || !race) {
+    console.error('Error fetching race:', raceError);
     notFound();
   }
 
+  // Cast race to any to avoid TS issues with the join if types aren't generated
+  const raceData = race as any;
+
   // Verificar que la carrera pertenece a la penca correcta
-  if (race.penca.slug !== params.slug) {
+  if (raceData.penca.slug !== params.slug) {
     notFound();
   }
 
@@ -71,7 +88,7 @@ export default async function PublishResultPage({ params }: PageProps) {
   }
 
   // Obtener el ruleset activo
-  const activeRuleset = race.penca.rulesets?.find((r: any) => r.is_active);
+  const activeRuleset = raceData.penca.rulesets?.find((r: any) => r.is_active);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -84,7 +101,7 @@ export default async function PublishResultPage({ params }: PageProps) {
                 href={`/admin/penca/${params.slug}`}
                 className="text-gray-600 hover:text-gray-900"
               >
-                ← Volver a {race.penca.name}
+                ← Volver a {raceData.penca.name}
               </Link>
             </div>
             <LogoutButton />
@@ -101,9 +118,9 @@ export default async function PublishResultPage({ params }: PageProps) {
             </h1>
             <div className="mt-2 text-sm text-gray-600">
               <p>{race.venue} • {race.distance_m}m</p>
-              <p>{new Date(race.start_at).toLocaleString('es', { 
-                dateStyle: 'medium', 
-                timeStyle: 'short' 
+              <p>{new Date(race.start_at).toLocaleString('es', {
+                dateStyle: 'medium',
+                timeStyle: 'short'
               })}</p>
             </div>
           </div>
@@ -125,7 +142,7 @@ export default async function PublishResultPage({ params }: PageProps) {
             </div>
           )}
 
-          <PublishResultForm 
+          <PublishResultForm
             race={race}
             entries={race.race_entries || []}
             slug={params.slug}
