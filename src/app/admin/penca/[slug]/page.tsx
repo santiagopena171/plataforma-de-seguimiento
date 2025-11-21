@@ -6,6 +6,7 @@ import LogoutButton from '@/components/LogoutButton';
 import DeleteRaceButton from '@/components/DeleteRaceButton';
 import PencaTabs from './PencaTabs';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
+import DownloadPredictionsButton from '@/components/DownloadPredictionsButton';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -18,7 +19,7 @@ interface PageProps {
 
 export default async function ManagePencaPage({ params }: PageProps) {
   const supabase = createServerComponentClient({ cookies });
-  
+
   // Validar que existan las variables de entorno necesarias
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
     throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
@@ -26,12 +27,12 @@ export default async function ManagePencaPage({ params }: PageProps) {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
   }
-  
+
   const supabaseAdmin = createSupabaseAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
-  
+
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -127,13 +128,13 @@ export default async function ManagePencaPage({ params }: PageProps) {
         horse_name:label
       )
     `)
-  .in('race_id', races?.map((r: any) => r.id) || []);
+    .in('race_id', races?.map((r: any) => r.id) || []);
 
   // Obtener resultados oficiales publicados
   const { data: raceResults } = await supabase
     .from('race_results')
     .select('*')
-  .in('race_id', races?.map((r: any) => r.id) || []);
+    .in('race_id', races?.map((r: any) => r.id) || []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -174,13 +175,12 @@ export default async function ManagePencaPage({ params }: PageProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <p className="text-sm text-gray-600">Estado</p>
-              <span className={`inline-flex mt-1 px-3 py-1 text-sm font-semibold rounded-full ${
-                penca.status === 'open' 
-                  ? 'bg-green-100 text-green-800' 
-                  : penca.status === 'closed'
+              <span className={`inline-flex mt-1 px-3 py-1 text-sm font-semibold rounded-full ${penca.status === 'open'
+                ? 'bg-green-100 text-green-800'
+                : penca.status === 'closed'
                   ? 'bg-gray-100 text-gray-800'
                   : 'bg-blue-100 text-blue-800'
-              }`}>
+                }`}>
                 {penca.status}
               </span>
             </div>
@@ -188,15 +188,14 @@ export default async function ManagePencaPage({ params }: PageProps) {
               <p className="text-sm text-gray-600">Slug</p>
               <p className="font-mono text-sm mt-1">{penca.slug}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Creada por</p>
-              <p className="mt-1">{penca.profiles?.display_name}</p>
+            <div className="flex items-end justify-end h-full">
+              <DownloadPredictionsButton slug={params.slug} />
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <PencaTabs 
+        <PencaTabs
           pencaSlug={params.slug}
           races={races || []}
           memberships={memberships || []}
