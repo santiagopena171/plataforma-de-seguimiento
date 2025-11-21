@@ -27,14 +27,43 @@ export async function calculateScores(
   const pointsTop3 = ruleset.points_top3
   const modalities = ruleset.modalities_enabled
 
+  // Pre-calculate winner counts to determine exclusive winners
+  const winnerCounts: Record<string, number> = {}
+  const placeWinnerCounts: Record<string, number> = {}
+
+  // Always calculate counts if we have predictions
+  for (const prediction of predictions) {
+    // For Winner Modality
+    if (prediction.winner_pick) {
+      winnerCounts[prediction.winner_pick] = (winnerCounts[prediction.winner_pick] || 0) + 1
+    }
+
+    // For Place Modality: count how many people picked the winner in their set of picks
+    if (modalities.includes('place') || modalities.includes('top3')) {
+      const picks = [
+        prediction.winner_pick,
+        ...(prediction.exacta_pick || []),
+        ...(prediction.trifecta_pick || []),
+      ].filter((p: any, i: number, arr: any[]) => p && arr.indexOf(p) === i)
+
+      if (picks.includes(officialOrder[0])) {
+        placeWinnerCounts[officialOrder[0]] = (placeWinnerCounts[officialOrder[0]] || 0) + 1
+      }
+    }
+  }
+
   for (const prediction of predictions) {
     let totalPoints = 0
     const breakdown: any = {}
 
     if (modalities.includes('winner') && prediction.winner_pick) {
       if (prediction.winner_pick === officialOrder[0]) {
-        breakdown.winner = pointsTop3.first
-        totalPoints += pointsTop3.first
+        // Check if this is an exclusive winner (only 1 person picked it)
+        const isExclusiveWinner = winnerCounts[officialOrder[0]] === 1
+        const points = isExclusiveWinner ? 25 : pointsTop3.first
+
+        breakdown.winner = points
+        totalPoints += points
       } else {
         breakdown.winner = 0
       }
@@ -79,8 +108,12 @@ export async function calculateScores(
 
       for (const pick of picks) {
         if (pick === officialOrder[0]) {
-          breakdown.place.push(pointsTop3.first)
-          totalPoints += pointsTop3.first
+          // Check if this is an exclusive winner (only 1 person picked it in place mode)
+          const isExclusiveWinner = placeWinnerCounts[officialOrder[0]] === 1
+          const points = isExclusiveWinner ? 25 : pointsTop3.first
+
+          breakdown.place.push(points)
+          totalPoints += points
         } else if (pick === officialOrder[1]) {
           breakdown.place.push(pointsTop3.second)
           totalPoints += pointsTop3.second
