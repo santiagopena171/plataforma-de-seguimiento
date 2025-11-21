@@ -13,43 +13,36 @@ interface PublishResultFormProps {
 
 export default function PublishResultForm({ race, entries, slug, activeRuleset }: PublishResultFormProps) {
   const router = useRouter();
-  
-  // Estado para las posiciones de cada caballo
-  const [positions, setPositions] = useState<Record<string, number>>({});
+
+  // Estado para los 4 primeros lugares
+  const [topFour, setTopFour] = useState<[string | null, string | null, string | null, string | null]>([null, null, null, null]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handlePositionChange = (entryId: string, position: string) => {
-    const pos = parseInt(position);
-    if (position === '' || isNaN(pos)) {
-      const newPositions = { ...positions };
-      delete newPositions[entryId];
-      setPositions(newPositions);
-    } else {
-      setPositions({
-        ...positions,
-        [entryId]: pos,
-      });
-    }
+  // Ordenar caballos por número de programa
+  const sortedEntries = [...entries].sort((a, b) => a.program_number - b.program_number);
+
+  const handlePositionChange = (position: number, entryId: string | null) => {
+    const newTopFour: [string | null, string | null, string | null, string | null] = [...topFour] as any;
+    newTopFour[position] = entryId;
+    setTopFour(newTopFour);
   };
 
-  const validatePositions = () => {
-    const positionValues = Object.values(positions);
-    
-    // Debe haber al menos los 3 primeros lugares
-    if (positionValues.length < 3) {
-      return 'Debes ingresar al menos los primeros 3 lugares';
+  const getAvailableEntries = (currentPosition: number) => {
+    const selectedIds = topFour.filter((id, idx) => idx !== currentPosition && id !== null);
+    return sortedEntries.filter(entry => !selectedIds.includes(entry.id));
+  };
+
+  const validateSelection = () => {
+    // Verificar que todos los 4 lugares estén seleccionados
+    if (topFour.some(id => id === null)) {
+      return 'Debes seleccionar los 4 primeros lugares';
     }
 
-    // Verificar que hay un 1°, 2° y 3°
-    if (!positionValues.includes(1)) return 'Falta el 1° lugar';
-    if (!positionValues.includes(2)) return 'Falta el 2° lugar';
-    if (!positionValues.includes(3)) return 'Falta el 3° lugar';
-
-    // Verificar que no hay posiciones duplicadas
-    const uniquePositions = new Set(positionValues);
-    if (uniquePositions.size !== positionValues.length) {
-      return 'No puede haber posiciones duplicadas';
+    // Verificar que no haya duplicados (por si acaso)
+    const uniqueIds = new Set(topFour);
+    if (uniqueIds.size !== 4) {
+      return 'No puede haber caballos duplicados';
     }
 
     return null;
@@ -59,7 +52,7 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
     e.preventDefault();
     setError(null);
 
-    const validationError = validatePositions();
+    const validationError = validateSelection();
     if (validationError) {
       setError(validationError);
       return;
@@ -68,6 +61,14 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
     setLoading(true);
 
     try {
+      // Convertir array a objeto positions para el API
+      const positions: Record<string, number> = {};
+      topFour.forEach((entryId, index) => {
+        if (entryId) {
+          positions[entryId] = index + 1;
+        }
+      });
+
       const response = await fetch(`/api/admin/races/${race.id}/publish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,7 +89,7 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
 
       // Redirigir de vuelta a la penca
       router.push(`/admin/penca/${slug}`);
-      
+
       // Forzar un reload completo para obtener los datos actualizados
       window.location.href = `/admin/penca/${slug}`;
     } catch (err) {
@@ -97,8 +98,13 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
     }
   };
 
-  // Ordenar caballos por número de programa
-  const sortedEntries = [...entries].sort((a, b) => a.program_number - b.program_number);
+  const getEntryById = (id: string | null) => {
+    if (!id) return null;
+    return sortedEntries.find(e => e.id === id);
+  };
+
+  const positionLabels = ['1° Lugar', '2° Lugar', '3° Lugar', '4° Lugar'];
+  const medals = ['🥇', '🥈', '🥉', '4°'];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -110,97 +116,88 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
 
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900">
-          Ingresa la posición final de cada caballo
+          Selecciona los 4 primeros lugares
         </h3>
         <p className="text-sm text-gray-600">
-          Ingresa al menos los primeros 3 lugares. Puedes dejar en blanco los caballos que no terminaron o no clasificaron.
+          Selecciona los caballos que terminaron en las primeras 4 posiciones, en orden.
         </p>
 
-        <div className="space-y-3">
-          {sortedEntries.map((entry) => (
-            <div
-              key={entry.id}
-              className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
-            >
-              <div className="flex-shrink-0 w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                <span className="text-lg font-bold text-indigo-700">
-                  {entry.program_number}
-                </span>
-              </div>
-              
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900">{entry.horse_name}</p>
-                <p className="text-sm text-gray-600">Jockey: {entry.jockey}</p>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[0, 1, 2, 3].map((position) => {
+            const selectedEntry = getEntryById(topFour[position]);
+            const availableEntries = getAvailableEntries(position);
+            const points = position === 0 ? activeRuleset?.points_top3.first :
+              position === 1 ? activeRuleset?.points_top3.second :
+                position === 2 ? activeRuleset?.points_top3.third :
+                  activeRuleset?.points_top3.fourth || 0;
 
-              <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Posición:
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={positions[entry.id] || ''}
-                  onChange={(e) => handlePositionChange(entry.id, e.target.value)}
-                  placeholder="-"
-                  className="w-20 rounded-md border border-gray-300 px-3 py-2 text-center focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-
-              {positions[entry.id] && positions[entry.id] <= 4 && (
-                <div className="flex-shrink-0">
-                  {positions[entry.id] === 1 && (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
-                      🥇 {activeRuleset?.points_top3.first || 0} pts
-                    </span>
-                  )}
-                  {positions[entry.id] === 2 && (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-800">
-                      🥈 {activeRuleset?.points_top3.second || 0} pts
-                    </span>
-                  )}
-                  {positions[entry.id] === 3 && (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-800">
-                      🥉 {activeRuleset?.points_top3.third || 0} pts
-                    </span>
-                  )}
-                  {positions[entry.id] === 4 && (
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-                      4º {activeRuleset?.points_top3.fourth || 0} pts
+            return (
+              <div key={position} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{medals[position]}</span>
+                    <label className="text-sm font-medium text-gray-700">
+                      {positionLabels[position]}
+                    </label>
+                  </div>
+                  {points > 0 && (
+                    <span className="text-sm font-semibold text-indigo-600">
+                      {points} pts
                     </span>
                   )}
                 </div>
-              )}
-            </div>
-          ))}
+
+                <select
+                  value={topFour[position] || ''}
+                  onChange={(e) => handlePositionChange(position, e.target.value || null)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  required
+                >
+                  <option value="">Seleccionar caballo...</option>
+                  {availableEntries.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      #{entry.program_number} - {entry.horse_name}
+                    </option>
+                  ))}
+                  {selectedEntry && !availableEntries.find(e => e.id === selectedEntry.id) && (
+                    <option value={selectedEntry.id}>
+                      #{selectedEntry.program_number} - {selectedEntry.horse_name}
+                    </option>
+                  )}
+                </select>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Summary */}
-      {Object.keys(positions).length > 0 && (
+      {/* Resumen */}
+      {topFour.some(id => id !== null) && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
           <h4 className="font-semibold text-gray-900 mb-3">Resumen del Resultado</h4>
           <div className="space-y-2">
-            {Object.entries(positions)
-              .sort(([, a], [, b]) => a - b)
-              .map(([entryId, position]) => {
-                const entry = entries.find((e) => e.id === entryId);
-                return (
-                  <div key={entryId} className="flex justify-between items-center text-sm">
-                    <span className="text-gray-700">
-                      {position}° - #{entry.program_number} {entry.horse_name}
-                      </span>
-                      {position <= 4 && activeRuleset && (
-                        <span className="font-semibold text-indigo-600">
-                          {position === 1 && `${activeRuleset.points_top3.first} puntos`}
-                          {position === 2 && `${activeRuleset.points_top3.second} puntos`}
-                          {position === 3 && `${activeRuleset.points_top3.third} puntos`}
-                          {position === 4 && `${activeRuleset.points_top3.fourth || 0} puntos`}
-                        </span>
-                      )}
-                  </div>
-                );
-              })}
+            {topFour.map((entryId, index) => {
+              const entry = getEntryById(entryId);
+              if (!entry) return null;
+
+              const points = index === 0 ? activeRuleset?.points_top3.first :
+                index === 1 ? activeRuleset?.points_top3.second :
+                  index === 2 ? activeRuleset?.points_top3.third :
+                    activeRuleset?.points_top3.fourth || 0;
+
+              return (
+                <div key={index} className="flex justify-between items-center text-sm">
+                  <span className="text-gray-700">
+                    {medals[index]} - #{entry.program_number} {entry.horse_name}
+                  </span>
+                  {points > 0 && (
+                    <span className="font-semibold text-indigo-600">
+                      {points} puntos
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -215,7 +212,7 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
         </Link>
         <button
           type="submit"
-          disabled={loading || Object.keys(positions).length < 3}
+          disabled={loading || topFour.some(id => id === null)}
           className="px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           {loading ? 'Publicando...' : 'Publicar Resultado'}

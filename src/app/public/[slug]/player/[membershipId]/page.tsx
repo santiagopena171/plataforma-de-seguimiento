@@ -108,6 +108,7 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
   let entries: any[] = [];
 
   if (publishedRaceIds.length > 0) {
+    // Buscar predicciones por membership_id primero
     const { data: fetchedPredictions } = await supabase
       .from('predictions')
       .select('id, race_id, winner_pick, exacta_pick, trifecta_pick, created_at')
@@ -115,12 +116,33 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
       .in('race_id', publishedRaceIds);
     predictions = fetchedPredictions || [];
 
+    // Si no hay predicciones y el miembro tiene user_id, buscar por user_id como fallback
+    if (predictions.length === 0 && membership.user_id) {
+      const { data: fallbackPredictions } = await supabase
+        .from('predictions')
+        .select('id, race_id, winner_pick, exacta_pick, trifecta_pick, created_at')
+        .eq('user_id', membership.user_id)
+        .in('race_id', publishedRaceIds);
+      predictions = fallbackPredictions || [];
+    }
+
+    // Buscar scores por membership_id primero
     const { data: fetchedScores } = await supabase
       .from('scores')
       .select('id, race_id, points_total, breakdown')
       .eq('membership_id', membership.id)
       .in('race_id', publishedRaceIds);
     scores = fetchedScores || [];
+
+    // Si no hay scores y el miembro tiene user_id, buscar por user_id como fallback
+    if (scores.length === 0 && membership.user_id) {
+      const { data: fallbackScores } = await supabase
+        .from('scores')
+        .select('id, race_id, points_total, breakdown')
+        .eq('user_id', membership.user_id)
+        .in('race_id', publishedRaceIds);
+      scores = fallbackScores || [];
+    }
 
     const { data: fetchedEntries } = await supabase
       .from('race_entries')
@@ -301,7 +323,7 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                     )}
                   </div>
 
-                    <div className="border border-gray-200 rounded-lg p-4 md:col-span-2">
+                  <div className="border border-gray-200 rounded-lg p-4 md:col-span-2">
                     <p className="text-xs uppercase text-gray-500 tracking-wide mb-2">
                       Predicción del jugador
                     </p>
@@ -396,8 +418,8 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                               {typeof value === 'number' || typeof value === 'string'
                                 ? value
                                 : Array.isArray(value)
-                                ? value.join(', ')
-                                : JSON.stringify(value)}
+                                  ? value.join(', ')
+                                  : JSON.stringify(value)}
                             </strong>{' '}
                             pts
                           </span>
