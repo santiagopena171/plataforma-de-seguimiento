@@ -1,0 +1,25 @@
+// Contenido a reemplazar en líneas 649-655 de PencaTabs.tsx
+
+// REEMPLAZAR DESDE:
+                        \u003cdiv className="flex flex-wrap gap-2"\u003e
+                          \u003cLink
+                            href={`/admin/penca/${pencaSlug}/race/${race.id}/preview`}
+                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                          \u003e
+                            Ver
+                          \u003c/Link\u003e
+
+// POR:
+                        \u003cdiv className="flex flex-wrap gap-2"\u003e
+                          {/* Modificar Predicciones - solo activo si no está publicado */}
+                          {race.status === 'result_published' ? (
+                            \u003cspan className="text-sm text-gray-400 font-medium cursor-not-allowed"\u003e
+                              Modificar Predicciones
+                            \u003c/span\u003e
+                          ) : (
+                            \u003cLink
+                              href={`/penca/${pencaSlug}/race/${race.id}/predict`}
+                              className="text-sm text-blue-600 hover:text-blue-800 font-medium"\u003e
+                              Modificar Predicciones
+                            \u003c/Link\u003e
+                          )}

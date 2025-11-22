@@ -756,6 +756,9 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Se unió
                         </th>
+                        <th className="relative px-6 py-3">
+                          <span className="sr-only">Acciones</span>
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -784,6 +787,31 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
                               month: 'short',
                               day: 'numeric',
                             })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button
+                              onClick={async () => {
+                                if (confirm('¿Estás seguro de que quieres eliminar a este miembro? Esta acción no se puede deshacer.')) {
+                                  try {
+                                    const response = await fetch(`/api/admin/pencas/${pencaSlug}/members/${member.id}`, {
+                                      method: 'DELETE',
+                                    });
+
+                                    if (!response.ok) {
+                                      throw new Error('Error al eliminar miembro');
+                                    }
+
+                                    router.refresh();
+                                  } catch (error) {
+                                    console.error('Error:', error);
+                                    alert('Error al eliminar miembro');
+                                  }
+                                }
+                              }}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Eliminar
+                            </button>
                           </td>
                         </tr>
                       ))}
