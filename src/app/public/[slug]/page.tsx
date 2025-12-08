@@ -468,7 +468,7 @@ export default async function PublicPencaPage({ params }: PageProps) {
 
         {/* Races History */}
         <PublicRaceHistory
-          races={races}
+          races={races || []}
           raceDays={raceDays || []}
           resultsMap={resultsMap}
           entriesByRace={entriesByRace}
