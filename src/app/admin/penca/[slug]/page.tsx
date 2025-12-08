@@ -10,6 +10,7 @@ import DownloadPredictionsButton from '@/components/DownloadPredictionsButton';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+// Cache busting: 2025-12-08-v2
 
 interface PageProps {
   params: {
