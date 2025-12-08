@@ -12,7 +12,7 @@ interface SimplifiedRaceFormProps {
 export default function SimplifiedRaceFormClean({ pencaSlug, pencaId }: SimplifiedRaceFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const dayId = searchParams.get('dayId');
+  const dayId = searchParams?.get('dayId') || null;
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
