@@ -82,7 +82,15 @@ export default async function ManagePencaPage({ params }: PageProps) {
   const { data: races } = await supabaseAdmin
     .from('races')
     .select(`
-      *,
+      id,
+      seq,
+      venue,
+      distance_m,
+      start_at,
+      status,
+      race_day,
+      race_day_id,
+      penca_id,
       race_entries (
         id,
         program_number,

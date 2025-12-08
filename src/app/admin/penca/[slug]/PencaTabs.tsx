@@ -49,6 +49,7 @@ interface Race {
   status: string;
   race_day?: number | null;
   race_day_id?: string | null;
+  penca_id?: string;
   race_entries: any[];
   predictions: any[];
 }
