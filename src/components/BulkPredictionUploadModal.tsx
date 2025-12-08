@@ -9,7 +9,7 @@ interface BulkPredictionUploadModalProps {
   pencaSlug: string;
   dayId: string;
   races: Array<{ id: string; seq: number; race_number?: number | null }>;
-  memberships: Array<{ id: string; user_id: string; users?: { full_name: string }; guest_name?: string }>;
+  memberships: Array<{ id: string; user_id: string | null; users?: { full_name: string }; guest_name?: string | null }>;
   onSuccess: () => void;
 }
 
