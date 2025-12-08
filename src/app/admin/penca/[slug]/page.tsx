@@ -31,7 +31,13 @@ export default async function ManagePencaPage({ params }: PageProps) {
 
   const supabaseAdmin = createSupabaseAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
   );
 
   const {
@@ -73,14 +79,21 @@ export default async function ManagePencaPage({ params }: PageProps) {
   }
 
   // Obtener días de carrera
-  const { data: raceDays } = await supabaseAdmin
+  const { data: raceDays, error: raceDaysError } = await supabaseAdmin
     .from('race_days')
     .select('*')
     .eq('penca_id', penca.id)
     .order('day_number', { ascending: true });
 
+  console.log('[DEBUG] Race Days Query:', {
+    count: raceDays?.length,
+    error: raceDaysError?.message,
+    pencaId: penca.id,
+    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+  });
+
   // Obtener carreras de la penca con service role para evitar restricciones de RLS
-  const { data: races } = await supabaseAdmin
+  const { data: races, error: racesError } = await supabaseAdmin
     .from('races')
     .select(`
       id,
@@ -106,6 +119,13 @@ export default async function ManagePencaPage({ params }: PageProps) {
     `)
     .eq('penca_id', penca.id)
     .order('seq', { ascending: true });
+
+  console.log('[DEBUG] Races Query:', {
+    count: races?.length,
+    error: racesError?.message,
+    withDayId: races?.filter(r => r.race_day_id).length,
+    firstThree: races?.slice(0, 3).map(r => ({ seq: r.seq, dayId: r.race_day_id }))
+  });
 
   // Obtener miembros con servicio role para bypass RLS
   const { data: memberships } = await supabaseAdmin
