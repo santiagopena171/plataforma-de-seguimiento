@@ -116,7 +116,7 @@ export async function GET(
             races.forEach(race => {
                 const pred = predictions?.find((p: any) =>
                     p.race_id === race.id &&
-                    (p.membership_id === m.id || (p.user_id && p.user_id === m.user_id))
+                    (p.membership_id === m.id || (!p.membership_id && p.user_id && p.user_id === m.user_id))
                 );
 
                 if (pred) {

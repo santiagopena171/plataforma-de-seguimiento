@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import DeleteRaceButton from '@/components/DeleteRaceButton';
 import AddMemberModal from './AddMemberModal';
+import AddRaceDayModal from '@/components/AddRaceDayModal';
+import BulkPredictionUploadModal from '@/components/BulkPredictionUploadModal';
 import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
 
@@ -45,8 +47,20 @@ interface Race {
   distance_m: number;
   start_at: string;
   status: string;
+  race_day?: number | null;
+  race_day_id?: string | null;
   race_entries: any[];
   predictions: any[];
+}
+
+interface RaceDay {
+  id: string;
+  penca_id: string;
+  day_number: number;
+  day_name: string;
+  day_date: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Score {
@@ -84,6 +98,7 @@ interface RaceResult {
 interface PencaTabsProps {
   pencaSlug: string;
   races: Race[];
+  raceDays: RaceDay[];
   memberships: Member[];
   numParticipants: number;
   scores: Score[];
@@ -92,17 +107,28 @@ interface PencaTabsProps {
   invitesCount: number;
 }
 
-export default function PencaTabs({ pencaSlug, races, memberships, numParticipants, scores, predictions, raceResults, invitesCount }: PencaTabsProps) {
+export default function PencaTabs({ pencaSlug, races, raceDays, memberships, numParticipants, scores, predictions, raceResults, invitesCount }: PencaTabsProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'races' | 'members' | 'leaderboard'>('races');
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const [closingRace, setClosingRace] = useState<string | null>(null);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [generatingImage, setGeneratingImage] = useState<string | null>(null);
+  const [isAddDayModalOpen, setIsAddDayModalOpen] = useState(false);
+  const [deletingDay, setDeletingDay] = useState<string | null>(null);
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
 
   // Filtrar solo miembros no-admin (jugadores reales)
   const actualMembers = memberships?.filter(m => m.role !== 'admin') || [];
   const adminMembers = memberships?.filter(m => m.role === 'admin') || [];
+
+  // Seleccionar automáticamente el primer día cuando se carga la página
+  useEffect(() => {
+    if (raceDays && raceDays.length > 0 && !selectedDayId) {
+      setSelectedDayId(raceDays[0].id);
+    }
+  }, [raceDays, selectedDayId]);
 
   const handleAddMember = async (guestName: string) => {
     try {
@@ -167,6 +193,30 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
       alert('Error al abrir predicciones');
     } finally {
       setClosingRace(null);
+    }
+  };
+
+  const handleDeleteDay = async (dayId: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este día? Las carreras asignadas no se eliminarán, solo se desasociarán del día.')) {
+      return;
+    }
+
+    try {
+      setDeletingDay(dayId);
+      const response = await fetch(`/api/admin/pencas/${pencaSlug}/race-days?dayId=${dayId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar el día');
+      }
+
+      router.refresh();
+    } catch (err) {
+      console.error('Error:', err);
+      alert('Error al eliminar el día');
+    } finally {
+      setDeletingDay(null);
     }
   };
 
@@ -507,25 +557,25 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
       document.body.removeChild(tempDiv);
 
       // Convert to blob and download
+      const a = document.createElement('a');
       canvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
           a.href = url;
           a.download = `resultados-carrera-${data.race.seq}.jpg`;
           a.click();
           URL.revokeObjectURL(url);
         }
+        setGeneratingImage(null);
       }, 'image/jpeg', 0.95);
-
     } catch (err) {
       console.error('Error generating results image:', err);
       alert('Error al generar la imagen de resultados');
-    } finally {
       setGeneratingImage(null);
     }
   };
 
+  // Renderizado del componente
   return (
     <div className="bg-white rounded-lg shadow">
       {/* Tabs Navigation */}
@@ -575,156 +625,250 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
         {/* Races Tab */}
         {activeTab === 'races' && (
           <div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Carreras</h3>
-              <Link
-                href={`/admin/penca/${pencaSlug}/race/new`}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Gestión de Carreras</h3>
+              <button
+                onClick={() => setIsAddDayModalOpen(true)}
                 className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"
               >
-                + Agregar Carrera
-              </Link>
+                + Agregar Día
+              </button>
             </div>
 
-            {races && races.length > 0 ? (
+            {/* Tabs de Días */}
+            {raceDays && raceDays.length > 0 && (
+              <div className="mb-6">
+                <div className="border-b border-gray-200">
+                  <nav className="-mb-px flex gap-2 overflow-x-auto" aria-label="Días">
+                    {raceDays.map((day) => {
+                      const dayRaces = races.filter((race) => race.race_day_id === day.id);
+                      const isSelected = selectedDayId === day.id;
+                      
+                      return (
+                        <button
+                          key={day.id}
+                          onClick={() => setSelectedDayId(day.id)}
+                          className={`flex-shrink-0 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors ${
+                            isSelected
+                              ? 'border-indigo-500 text-indigo-600'
+                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            📅 {day.day_name}
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                              {dayRaces.length}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+                </div>
+              </div>
+            )}
+
+            {/* Contenido del día seleccionado */}
+            {raceDays && raceDays.length > 0 && selectedDayId ? (
               <div className="space-y-4">
-                {races.map((race) => {
-                  const raceResult = raceResults.find(r => r.race_id === race.id);
-                  // Predicciones asociadas a esta carrera (todas las predicciones pasadas al componente)
-                  const predsForRace = (predictions || []).filter((p: any) => p.race_id === race.id);
-                  // Contar predicciones únicas por membership_id o user_id
-                  const uniquePredKeys = new Set(predsForRace.map((p: any) => p.membership_id || p.user_id)).size;
-
+                {(() => {
+                  const selectedDay = raceDays.find(d => d.id === selectedDayId);
+                  if (!selectedDay) return null;
+                  
+                  const dayRaces = races.filter((race) => race.race_day_id === selectedDay.id);
+                  
                   return (
-                    <div
-                      key={race.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3">
-                            <span className="text-lg font-bold text-gray-900">
-                              Carrera #{race.seq}
+                    <>
+                      {/* Header del día seleccionado */}
+                      <div className="flex items-center justify-between p-4 bg-indigo-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <h4 className="text-lg font-semibold text-indigo-700">
+                            📅 {selectedDay.day_name}
+                          </h4>
+                          {selectedDay.day_date && (
+                            <span className="text-sm text-gray-600">
+                              {new Date(selectedDay.day_date).toLocaleDateString('es-UY', { 
+                                dateStyle: 'medium' 
+                              })}
                             </span>
-                            <span
-                              className={`px-2 py-1 text-xs font-semibold rounded-full ${race.status === 'scheduled'
-                                ? 'bg-blue-100 text-blue-800'
-                                : race.status === 'closed'
-                                  ? 'bg-red-100 text-red-800'
-                                  : 'bg-purple-100 text-purple-800'
-                                }`}
-                            >
-                              {race.status}
-                            </span>
-                          </div>
-                          <div className="mt-2 space-y-1 text-sm text-gray-600">
-                            <p>
-                              📍 {race.venue} • 📏 {race.distance_m}m
-                            </p>
-                            <p>
-                              🕐{' '}
-                              {new Date(race.start_at).toLocaleDateString('es-UY', {
-                                dateStyle: 'medium',
-                              })}, {formatRaceTime(race.start_at)}
-                            </p>
-                            <p>🐴 {race.race_entries?.length || 0} caballos</p>
-                          </div>
-
-                          {/* Resultado Oficial */}
-                          {raceResult && raceResult.official_order && raceResult.official_order.length > 0 && (
-                            <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                              <p className="text-sm font-bold text-yellow-900 mb-2">🏆 Resultado Oficial:</p>
-                              <div className="space-y-1">
-                                {raceResult.official_order.slice(0, 3).map((entryId: string, index: number) => {
-                                  const entry = race.race_entries?.find((e: any) => e.id === entryId);
-                                  return entry ? (
-                                    <p key={entryId} className="text-sm text-yellow-900">
-                                      {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} {index + 1}°: <span className="font-bold">Caballo #{entry.program_number}</span>
-                                    </p>
-                                  ) : null;
-                                })}
-                              </div>
-                            </div>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Link
-                            href={`/admin/penca/${pencaSlug}/race/${race.id}/preview`}
-                            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setIsBulkUploadModalOpen(true)}
+                            className="text-sm px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                           >
-                            Ver
-                          </Link>
+                            📤 Cargar Predicciones
+                          </button>
                           <Link
-                            href={`/admin/penca/${pencaSlug}/race/${race.id}/edit`}
-                            className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                            href={`/admin/penca/${pencaSlug}/race/new?dayId=${selectedDay.id}`}
+                            className="text-sm px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
                           >
-                            Editar
+                            + Agregar Carrera
                           </Link>
-
-                          {/* Botón para cerrar/abrir predicciones */}
-                          {race.status === 'result_published' ? (
-                            <button
-                              onClick={() => handleDownloadResults(race.id)}
-                              disabled={generatingImage === race.id}
-                              className="text-sm text-green-600 hover:text-green-800 font-medium disabled:opacity-50"
-                            >
-                              {generatingImage === race.id ? 'Generando...' : 'Resultado Publicado'}
-                            </button>
-                          ) : race.status === 'closed' ? (
-                            <button
-                              onClick={() => handleOpenPredictions(race.id)}
-                              disabled={closingRace === race.id}
-                              className="text-sm text-orange-600 hover:text-orange-800 font-medium disabled:opacity-50"
-                            >
-                              {closingRace === race.id ? 'Abriendo...' : 'Abrir Predicciones'}
-                            </button>
-                          ) : (
-                            // Si ya hay predicciones (para todos los miembros) mostrar botón para descargar
-                            uniquePredKeys >= actualMembers.length ? (
-                              <button
-                                onClick={() => handleDownloadPredictions(race.id)}
-                                disabled={generatingImage === race.id}
-                                className="text-sm text-gray-600 hover:text-gray-800 font-medium disabled:opacity-50"
-                              >
-                                {generatingImage === race.id ? 'Generando...' : 'Predicciones Creadas'}
-                              </button>
-                            ) : (
-                              // Enlace para que el admin cree/ingrese predicciones para todos los miembros
-                              <Link
-                                href={`/admin/penca/${pencaSlug}/race/${race.id}/predictions`}
-                                className="text-sm text-red-600 hover:text-red-800 font-medium"
-                              >
-                                Crear Predicciones
-                              </Link>
-                            )
-                          )}
-
-                          {/* Botón para publicar resultado */}
-                          {race.status === 'result_published' ? (
-                            <button
-                              onClick={() => handleDownloadResults(race.id)}
-                              disabled={generatingImage === race.id}
-                              className="text-sm text-green-600 hover:text-green-800 font-medium disabled:opacity-50"
-                            >
-                              {generatingImage === race.id ? 'Generando...' : 'Resultado Publicado'}
-                            </button>
-                          ) : (
-                            <Link
-                              href={`/admin/penca/${pencaSlug}/race/${race.id}/publish`}
-                              className="text-sm text-green-600 hover:text-green-800 font-medium"
-                            >
-                              Publicar Resultado
-                            </Link>
-                          )}
-                          <DeleteRaceButton raceId={race.id} slug={pencaSlug} />
+                          <button
+                            onClick={() => handleDeleteDay(selectedDay.id)}
+                            disabled={deletingDay === selectedDay.id}
+                            className="text-sm px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
+                          >
+                            {deletingDay === selectedDay.id ? 'Eliminando...' : 'Eliminar Día'}
+                          </button>
                         </div>
                       </div>
-                    </div>
+
+                      {/* Lista de Carreras */}
+                      {dayRaces.length > 0 ? (
+                        <div className="space-y-3">
+                          {dayRaces.map((race) => {
+                            const raceResult = raceResults.find(r => r.race_id === race.id);
+                            const predsForRace = (predictions || []).filter((p: any) => p.race_id === race.id);
+                            const uniquePredKeys = new Set(predsForRace.map((p: any) => p.membership_id || p.user_id)).size;
+
+                            return (
+                              <div
+                                key={race.id}
+                                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                              >
+                                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center space-x-3">
+                                      <span className="text-lg font-bold text-gray-900">
+                                        Carrera #{race.seq}
+                                      </span>
+                                      <span
+                                        className={`px-2 py-1 text-xs font-semibold rounded-full ${race.status === 'scheduled'
+                                          ? 'bg-blue-100 text-blue-800'
+                                          : race.status === 'closed'
+                                            ? 'bg-red-100 text-red-800'
+                                            : 'bg-purple-100 text-purple-800'
+                                          }`}
+                                      >
+                                        {race.status}
+                                      </span>
+                                    </div>
+                                    <div className="mt-2 space-y-1 text-sm text-gray-600">
+                                      <p>
+                                        📍 {race.venue} • 📏 {race.distance_m}m
+                                      </p>
+                                      <p>
+                                        🕐{' '}
+                                        {new Date(race.start_at).toLocaleDateString('es-UY', {
+                                          dateStyle: 'medium',
+                                        })}, {formatRaceTime(race.start_at)}
+                                      </p>
+                                      <p>🐴 {race.race_entries?.length || 0} caballos</p>
+                                    </div>
+
+                                    {/* Resultado Oficial */}
+                                    {raceResult && raceResult.official_order && raceResult.official_order.length > 0 && (
+                                      <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                        <p className="text-sm font-bold text-yellow-900 mb-2">🏆 Resultado Oficial:</p>
+                                        <div className="space-y-1">
+                                          {raceResult.official_order.slice(0, 3).map((entryId: string, index: number) => {
+                                            const entry = race.race_entries?.find((e: any) => e.id === entryId);
+                                            return entry ? (
+                                              <p key={entryId} className="text-sm text-yellow-900">
+                                                {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} {index + 1}°: <span className="font-bold">Caballo #{entry.program_number}</span>
+                                              </p>
+                                            ) : null;
+                                          })}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                    <Link
+                                      href={`/admin/penca/${pencaSlug}/race/${race.id}/preview`}
+                                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                    >
+                                      Ver
+                                    </Link>
+                                    <Link
+                                      href={`/admin/penca/${pencaSlug}/race/${race.id}/edit`}
+                                      className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                                    >
+                                      Editar
+                                    </Link>
+
+                                    {/* Botón para cerrar/abrir predicciones */}
+                                    {race.status === 'result_published' ? (
+                                      <button
+                                        onClick={() => handleDownloadResults(race.id)}
+                                        disabled={generatingImage === race.id}
+                                        className="text-sm text-green-600 hover:text-green-800 font-medium disabled:opacity-50"
+                                      >
+                                        {generatingImage === race.id ? 'Generando...' : 'Resultado Publicado'}
+                                      </button>
+                                    ) : race.status === 'closed' ? (
+                                      <button
+                                        onClick={() => handleOpenPredictions(race.id)}
+                                        disabled={closingRace === race.id}
+                                        className="text-sm text-orange-600 hover:text-orange-800 font-medium disabled:opacity-50"
+                                      >
+                                        {closingRace === race.id ? 'Abriendo...' : 'Abrir Predicciones'}
+                                      </button>
+                                    ) : (
+                                      // Si ya hay predicciones (para todos los miembros) mostrar botón para descargar
+                                      uniquePredKeys >= actualMembers.length ? (
+                                        <button
+                                          onClick={() => handleDownloadPredictions(race.id)}
+                                          disabled={generatingImage === race.id}
+                                          className="text-sm text-gray-600 hover:text-gray-800 font-medium disabled:opacity-50"
+                                        >
+                                          {generatingImage === race.id ? 'Generando...' : 'Predicciones Completas'}
+                                        </button>
+                                      ) : (
+                                        // Enlace para que el admin cree/ingrese predicciones para todos los miembros
+                                        <Link
+                                          href={`/admin/penca/${pencaSlug}/race/${race.id}/predictions`}
+                                          className="text-sm text-red-600 hover:text-red-800 font-medium"
+                                        >
+                                          Predicciones ({uniquePredKeys}/{actualMembers.length})
+                                        </Link>
+                                      )
+                                    )}
+
+                                    {/* Botón para publicar resultado */}
+                                    {race.status === 'result_published' ? (
+                                      <button
+                                        onClick={() => handleDownloadResults(race.id)}
+                                        disabled={generatingImage === race.id}
+                                        className="text-sm text-green-600 hover:text-green-800 font-medium disabled:opacity-50"
+                                      >
+                                        {generatingImage === race.id ? 'Generando...' : 'Resultado Publicado'}
+                                      </button>
+                                    ) : (
+                                      <Link
+                                        href={`/admin/penca/${pencaSlug}/race/${race.id}/publish`}
+                                        className="text-sm text-green-600 hover:text-green-800 font-medium"
+                                      >
+                                        Publicar Resultado
+                                      </Link>
+                                    )}
+                                    <DeleteRaceButton raceId={race.id} slug={pencaSlug} />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 text-center py-8">
+                          No hay carreras en este día. Haz clic en "+ Agregar Carrera" para crear una.
+                        </p>
+                      )}
+                    </>
                   );
-                })}
+                })()}
+              </div>
+            ) : raceDays && raceDays.length > 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p>Selecciona un día para ver sus carreras</p>
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-gray-500">No hay carreras todavía</p>
+                <p className="text-gray-500 mb-4">No hay días creados todavía</p>
+                <p className="text-sm text-gray-400">Haz clic en "+ Agregar Día" para comenzar</p>
               </div>
             )}
           </div>
@@ -1104,6 +1248,31 @@ export default function PencaTabs({ pencaSlug, races, memberships, numParticipan
         onAdd={handleAddMember}
         pencaSlug={pencaSlug}
       />
+
+      {/* Modal para agregar día */}
+      {isAddDayModalOpen && (
+        <AddRaceDayModal
+          pencaSlug={pencaSlug}
+          pencaId={races[0]?.penca_id || ''}
+          onClose={() => setIsAddDayModalOpen(false)}
+          existingDays={raceDays.map(d => ({ day_number: d.day_number, day_name: d.day_name }))}
+        />
+      )}
+
+      {/* Modal para carga masiva de predicciones */}
+      {selectedDayId && (
+        <BulkPredictionUploadModal
+          isOpen={isBulkUploadModalOpen}
+          onClose={() => setIsBulkUploadModalOpen(false)}
+          pencaSlug={pencaSlug}
+          dayId={selectedDayId}
+          races={races.filter(r => r.race_day_id === selectedDayId)}
+          memberships={memberships}
+          onSuccess={() => {
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

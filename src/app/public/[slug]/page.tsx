@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
+import PublicRaceHistory from '@/components/PublicRaceHistory';
 
 interface PageProps {
   params: {
@@ -71,6 +72,13 @@ export default async function PublicPencaPage({ params }: PageProps) {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
 
+  // Obtener días de carreras
+  const { data: raceDays } = await supabaseAdmin
+    .from('race_days')
+    .select('*')
+    .eq('penca_id', penca.id)
+    .order('day_number', { ascending: true });
+
   // Obtener todas las carreras de la penca (para listar historial y estados)
   const { data: races, error: racesError } = await supabaseAdmin
     .from('races')
@@ -80,10 +88,11 @@ export default async function PublicPencaPage({ params }: PageProps) {
       venue,
       distance_m,
       start_at,
-      status
+      status,
+      race_day_id
     `)
     .eq('penca_id', penca.id)
-    .order('start_at', { ascending: false });
+    .order('seq', { ascending: true });
 
   // Obtener resultados de las carreras
   const raceIds = races?.map((r: any) => r.id) || [];
@@ -458,67 +467,13 @@ export default async function PublicPencaPage({ params }: PageProps) {
         </div>
 
         {/* Races History */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">
-              📋 Historial de Carreras
-            </h2>
-          </div>
-
-          {!races || races.length === 0 ? (
-            <div className="px-4 sm:px-6 py-8 text-center text-gray-500">
-              No hay carreras todavía.
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-200">
-              {races.map((race: any) => {
-                const result = resultsMap[race.id];
-                const raceDateLabel = formatRaceDate(race);
-                const raceTimeLabel = formatRaceTime(race);
-
-                return (
-                  <div key={race.id} className="px-4 sm:px-6 py-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900">
-                          Carrera {race.seq} - {race.venue}
-                        </h3>
-
-
-                        {result && (
-                          <div className="mt-3 flex gap-4 text-sm">
-                            <span className="text-gray-700">
-                              🥇 1°: <span className="font-medium">#{(entriesByRace[race.id] && entriesByRace[race.id][result.first_place]?.program_number) || result.first_place}</span>
-                            </span>
-                            <span className="text-gray-700">
-                              🥈 2°: <span className="font-medium">#{(entriesByRace[race.id] && entriesByRace[race.id][result.second_place]?.program_number) || result.second_place}</span>
-                            </span>
-                            <span className="text-gray-700">
-                              🥉 3°: <span className="font-medium">#{(entriesByRace[race.id] && entriesByRace[race.id][result.third_place]?.program_number) || result.third_place}</span>
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {race.status === 'result_published' ? (
-                        <Link
-                          href={`/public/${params.slug}/race/${race.id}`}
-                          className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-md transition-colors"
-                        >
-                          Ver Predicciones
-                        </Link>
-                      ) : (
-                        <span className="text-sm text-gray-400">
-                          Resultados pendientes
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <PublicRaceHistory
+          races={races}
+          raceDays={raceDays || []}
+          resultsMap={resultsMap}
+          entriesByRace={entriesByRace}
+          pencaSlug={params.slug}
+        />
       </main>
 
       {/* Footer */}

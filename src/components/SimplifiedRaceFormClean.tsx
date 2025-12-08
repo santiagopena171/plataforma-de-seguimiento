@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface SimplifiedRaceFormProps {
   pencaSlug: string;
@@ -11,6 +11,9 @@ interface SimplifiedRaceFormProps {
 
 export default function SimplifiedRaceFormClean({ pencaSlug, pencaId }: SimplifiedRaceFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const dayId = searchParams.get('dayId');
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,11 +34,11 @@ export default function SimplifiedRaceFormClean({ pencaSlug, pencaId }: Simplifi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           penca_id: pencaId,
-          // si el usuario ingresó número, úsalo; si no, el backend lo calcula
           seq: formData.seq ? parseInt(formData.seq) : undefined,
           venue: formData.venue,
-          distance_m: 1, // Default value (must be > 0)
-          start_at: `${today}T12:00:00Z`, // Default time and date (UTC)
+          distance_m: 1,
+          start_at: `${today}T12:00:00Z`,
+          race_day_id: dayId || null,
         }),
       });
 
@@ -45,7 +48,6 @@ export default function SimplifiedRaceFormClean({ pencaSlug, pencaId }: Simplifi
       }
 
       await raceResponse.json();
-      // Redirigir al dashboard de la penca
       router.push(`/admin/penca/${pencaSlug}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
@@ -57,6 +59,13 @@ export default function SimplifiedRaceFormClean({ pencaSlug, pencaId }: Simplifi
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Crear nueva carrera</h2>
+      {dayId && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mb-4">
+          <p className="text-sm text-indigo-800">
+            ℹ️ Esta carrera se agregará al día seleccionado
+          </p>
+        </div>
+      )}
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Detalles de la carrera</h3>
 
       {error && (
@@ -66,7 +75,6 @@ export default function SimplifiedRaceFormClean({ pencaSlug, pencaId }: Simplifi
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Número de carrera (opcional si quieres que se autogenere) */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Número de carrera</label>
           <input

@@ -103,6 +103,7 @@ export async function POST(
           distance_m: body.distance_m,
           start_at: body.start_at,
           status: 'scheduled',
+          race_day_id: body.race_day_id || null,
         },
       ])
       .select()
@@ -117,6 +118,22 @@ export async function POST(
         );
       }
       throw error;
+    }
+
+    // Crear automáticamente 15 entries (caballos) para la carrera
+    const entries = Array.from({ length: 15 }, (_, i) => ({
+      race_id: data.id,
+      program_number: i + 1,
+      label: `Caballo ${i + 1}`,
+    }));
+
+    const { error: entriesError } = await supabaseAdmin
+      .from('race_entries')
+      .insert(entries);
+
+    if (entriesError) {
+      console.error('Error creating entries:', entriesError);
+      // No fallar si hay error al crear entries, la carrera ya fue creada
     }
 
     return NextResponse.json(data, { status: 201 });

@@ -71,6 +71,13 @@ export default async function ManagePencaPage({ params }: PageProps) {
     notFound();
   }
 
+  // Obtener días de carrera
+  const { data: raceDays } = await supabaseAdmin
+    .from('race_days')
+    .select('*')
+    .eq('penca_id', penca.id)
+    .order('day_number', { ascending: true });
+
   // Obtener carreras de la penca con service role para evitar restricciones de RLS
   const { data: races } = await supabaseAdmin
     .from('races')
@@ -198,6 +205,7 @@ export default async function ManagePencaPage({ params }: PageProps) {
         <PencaTabs
           pencaSlug={params.slug}
           races={races || []}
+          raceDays={raceDays || []}
           memberships={memberships || []}
           numParticipants={penca.num_participants || 8}
           scores={scores || []}

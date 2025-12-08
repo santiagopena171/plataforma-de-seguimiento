@@ -39,7 +39,7 @@ export async function POST(
     // Obtener la penca
     const { data: penca } = await supabase
       .from('pencas')
-      .select('id, num_participants')
+      .select('id')
       .eq('slug', params.slug)
       .single();
 
@@ -50,7 +50,7 @@ export async function POST(
       );
     }
 
-    // Contar miembros actuales (excluyendo admin)
+    // Configurar cliente admin
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       throw new Error('Missing environment variables');
     }
@@ -59,20 +59,6 @@ export async function POST(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
-
-    const { data: existingMembers } = await supabaseAdmin
-      .from('memberships')
-      .select('id, role')
-      .eq('penca_id', penca.id);
-
-    const actualMembersCount = existingMembers?.filter(m => m.role !== 'admin').length || 0;
-
-    if (actualMembersCount >= penca.num_participants) {
-      return NextResponse.json(
-        { error: `La penca ya tiene el máximo de ${penca.num_participants} miembros` },
-        { status: 400 }
-      );
-    }
 
     // Obtener el nombre del request body
     const body = await request.json();
