@@ -102,7 +102,6 @@ export default async function ManagePencaPage({ params }: PageProps) {
       distance_m,
       start_at,
       status,
-      race_day,
       race_day_id,
       penca_id,
       race_entries (
