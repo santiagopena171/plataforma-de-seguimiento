@@ -436,6 +436,127 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
     }
   };
 
+  const handleExportLeaderboardByDay = async () => {
+    try {
+      setGeneratingImage('leaderboard-by-day');
+
+      // Preparar datos agrupados por día
+      const leaderboardByDay = actualMembers
+        .map((member) => {
+          const memberScores = scores?.filter((s: Score) => (s.user_id && s.user_id === member.user_id) || (s as any).membership_id === member.id) || [];
+          
+          // Calcular puntos por día
+          const pointsByDay = raceDays.map((day) => {
+            const dayRaces = races.filter((r: Race) => r.race_day_id === day.id && r.status === 'result_published');
+            const dayPoints = dayRaces.reduce((sum, race) => {
+              const raceScore = memberScores.find(s => s.race_id === race.id);
+              return sum + (raceScore?.points_total || 0);
+            }, 0);
+            return { dayName: day.day_name, points: dayPoints };
+          });
+
+          const totalPoints = pointsByDay.reduce((sum, day) => sum + day.points, 0);
+
+          return {
+            member,
+            pointsByDay,
+            totalPoints
+          };
+        })
+        .sort((a, b) => b.totalPoints - a.totalPoints);
+
+      // Crear div temporal
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.padding = '40px';
+      tempDiv.style.backgroundColor = 'white';
+      tempDiv.style.fontFamily = 'Arial, sans-serif';
+
+      // Construir HTML
+      let html = `
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="font-size: 28px; font-weight: bold; color: #1f2937; margin-bottom: 10px;">
+            Puntos por Día
+          </h1>
+          <p style="font-size: 16px; color: #6b7280;">
+            ${pencaSlug}
+          </p>
+        </div>
+        <table style="border-collapse: collapse; font-size: 14px; width: auto;">
+          <thead>
+            <tr style="background-color: #f3f4f6;">
+              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: left; font-weight: 600;">Posición</th>
+              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: left; font-weight: 600;">Jugador</th>
+      `;
+
+      // Agregar columnas para cada día
+      raceDays.forEach((day) => {
+        html += `<th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; font-weight: 600;">${day.day_name}</th>`;
+      });
+
+      html += `
+              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; font-weight: 600; background-color: #10b981; color: white;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      // Agregar filas de jugadores
+      leaderboardByDay.forEach(({ member, pointsByDay, totalPoints }, index) => {
+        const playerName = member.guest_name || member.profiles?.display_name || 'Sin nombre';
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+
+        html += `
+          <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
+            <td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center;">${medal} ${index + 1}</td>
+            <td style="border: 1px solid #d1d5db; padding: 12px 16px;">${playerName}</td>
+        `;
+
+        // Agregar puntos por día
+        pointsByDay.forEach(({ points }) => {
+          html += `<td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center;">${points}</td>`;
+        });
+
+        html += `<td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; background-color: #d1fae5; font-weight: 600;">${totalPoints}</td>`;
+        html += `</tr>`;
+      });
+
+      html += `
+          </tbody>
+        </table>
+      `;
+
+      tempDiv.innerHTML = html;
+      document.body.appendChild(tempDiv);
+
+      // Convertir a canvas y descargar
+      const canvas = await html2canvas(tempDiv, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+      });
+
+      document.body.removeChild(tempDiv);
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `tabla-posiciones-por-dia-${pencaSlug}.jpg`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/jpeg', 0.95);
+
+    } catch (err) {
+      console.error('Error exporting leaderboard by day:', err);
+      alert('Error al exportar la tabla por días');
+    } finally {
+      setGeneratingImage(null);
+    }
+  };
+
   const handleDownloadResults = async (raceId: string) => {
     try {
       setGeneratingImage(raceId);
@@ -1049,15 +1170,27 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
           <div className="p-4 sm:p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-semibold text-gray-900">Tabla de Posiciones</h3>
-              <button
-                onClick={handleExportLeaderboard}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-              >
-                <svg className="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Exportar
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleExportLeaderboard}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  <svg className="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Exportar
+                </button>
+                <button
+                  onClick={handleExportLeaderboardByDay}
+                  disabled={generatingImage === 'leaderboard-by-day'}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  <svg className="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {generatingImage === 'leaderboard-by-day' ? 'Generando...' : 'Exportar por Día'}
+                </button>
+              </div>
             </div>
             {actualMembers.length > 0 ? (
               <div className="space-y-6">
