@@ -9,24 +9,6 @@ interface PageProps {
   };
 }
 
-const formatEntry = (entry: any, fallbackId?: string | null) => {
-  if (!entry) {
-    return fallbackId ? `#${fallbackId}` : '—';
-  }
-  const horse = entry.horse_name ? ` ${entry.horse_name}` : '';
-  return `#${entry.program_number}${horse}`;
-};
-
-const formatHorseNumber = (entry?: any, fallbackId?: string | null) => {
-  if (entry?.program_number) {
-    return `caballo #${entry.program_number}`;
-  }
-  if (fallbackId && /^[0-9]+$/.test(fallbackId)) {
-    return `caballo #${fallbackId}`;
-  }
-  return 'caballo #?';
-};
-
 const normalizeRaceResult = (result: any) => {
   if (!result) return result;
   const order = Array.isArray(result.official_order) ? result.official_order : [];
@@ -80,7 +62,7 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
     .from('races')
     .select('id, seq, venue, distance_m, start_at, status')
     .eq('penca_id', penca.id)
-    .order('start_at', { ascending: false });
+    .order('seq', { ascending: false });
 
   const allRaceIds = (races || []).map((race: any) => race.id);
 
@@ -204,19 +186,6 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
 
   entries.forEach(addEntryToMaps);
 
-  const getEntryFromRace = (
-    raceEntries: RaceEntriesMaps | undefined,
-    pick?: string | null
-  ) => {
-    if (!pick) return undefined;
-    if (raceEntries) {
-      const entry =
-        raceEntries.byId[pick] || raceEntries.byProgram[String(pick)];
-      if (entry) return entry;
-    }
-    return entryById.get(pick);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
@@ -287,34 +256,10 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                     </p>
                     {raceResult ? (
                       <ul className="space-y-1 text-sm text-gray-700">
-                        <li>
-                          🥇{' '}
-                          {formatHorseNumber(
-                            getEntryFromRace(raceEntries, raceResult.first_place),
-                            raceResult.first_place
-                          )}
-                        </li>
-                        <li>
-                          🥈{' '}
-                          {formatHorseNumber(
-                            getEntryFromRace(raceEntries, raceResult.second_place),
-                            raceResult.second_place
-                          )}
-                        </li>
-                        <li>
-                          🥉{' '}
-                          {formatHorseNumber(
-                            getEntryFromRace(raceEntries, raceResult.third_place),
-                            raceResult.third_place
-                          )}
-                        </li>
-                        <li>
-                          <span className="font-semibold text-gray-900">4°</span>{' '}
-                          {formatHorseNumber(
-                            getEntryFromRace(raceEntries, raceResult.fourth_place),
-                            raceResult.fourth_place
-                          )}
-                        </li>
+                        <li>🥇 caballo #{entryById.get(raceResult.first_place)?.program_number || '?'}</li>
+                        <li>🥈 caballo #{entryById.get(raceResult.second_place)?.program_number || '?'}</li>
+                        <li>🥉 caballo #{entryById.get(raceResult.third_place)?.program_number || '?'}</li>
+                        <li><span className="font-semibold text-gray-900">4°</span> caballo #{entryById.get(raceResult.fourth_place)?.program_number || '?'}</li>
                       </ul>
                     ) : (
                       <p className="text-gray-400 text-sm">
@@ -329,36 +274,8 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                     </p>
                     {playerPrediction ? (
                       <div className="space-y-2 text-sm text-gray-700">
-                        {(() => {
-                          const winnerEntry = getEntryFromRace(
-                            raceEntries,
-                            playerPrediction.winner_pick
-                          );
-                          if (!winnerEntry) {
-                            console.warn('Missing entry for winner_pick', {
-                              raceId: race.id,
-                              pick: playerPrediction.winner_pick,
-                              raceEntriesIds: Object.keys(
-                                raceEntries?.byId || {}
-                              ),
-                              raceEntriesPrograms: Object.keys(
-                                raceEntries?.byProgram || {}
-                              ),
-                              entryByIdHas: entryById.has(
-                                playerPrediction.winner_pick || ''
-                              ),
-                            });
-                          }
-                          return null;
-                        })()}
                         <div className="font-semibold text-gray-900">
-                          {formatHorseNumber(
-                            getEntryFromRace(
-                              raceEntries,
-                              playerPrediction.winner_pick
-                            ),
-                            playerPrediction.winner_pick
-                          )}
+                          caballo #{entryById.get(playerPrediction.winner_pick)?.program_number || playerPrediction.winner_pick || '?'}
                         </div>
                         {playerPrediction.exacta_pick &&
                           playerPrediction.exacta_pick.length > 0 && (
@@ -367,11 +284,8 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                                 Exacta:{' '}
                               </span>
                               {playerPrediction.exacta_pick
-                                .map((pick: string) =>
-                                  formatHorseNumber(
-                                    getEntryFromRace(raceEntries, pick),
-                                    pick
-                                  )
+                                .map((pick: string) => 
+                                  `caballo #${entryById.get(pick)?.program_number || pick || '?'}`
                                 )
                                 .join(' → ')}
                             </div>
@@ -384,10 +298,7 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
                               </span>
                               {playerPrediction.trifecta_pick
                                 .map((pick: string) =>
-                                  formatHorseNumber(
-                                    getEntryFromRace(raceEntries, pick),
-                                    pick
-                                  )
+                                  `caballo #${entryById.get(pick)?.program_number || pick || '?'}`
                                 )
                                 .join(' → ')}
                             </div>

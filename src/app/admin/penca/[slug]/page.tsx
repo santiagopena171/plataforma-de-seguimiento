@@ -10,7 +10,7 @@ import DownloadPredictionsButton from '@/components/DownloadPredictionsButton';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-// Cache busting: 2025-12-08-v3
+// Force rebuild: 2025-12-22-limit-5000
 
 interface PageProps {
   params: {
@@ -146,11 +146,42 @@ export default async function ManagePencaPage({ params }: PageProps) {
     .eq('penca_id', penca.id)
     .order('created_at', { ascending: false });
 
-  // Obtener scores
-  const { data: scores } = await supabase
+  // Obtener scores usando admin (bypassa RLS)
+  // Primero obtenemos TODOS los scores sin límite usando range
+  const { data: allScoresPage1 } = await supabaseAdmin
     .from('scores')
     .select('*')
-    .eq('penca_id', penca.id);
+    .eq('penca_id', penca.id)
+    .range(0, 999);
+    
+  const { data: allScoresPage2 } = await supabaseAdmin
+    .from('scores')
+    .select('*')
+    .eq('penca_id', penca.id)
+    .range(1000, 1999);
+    
+  const scores = [...(allScoresPage1 || []), ...(allScoresPage2 || [])];
+  
+  console.log('[DEBUG] Scores Query Result:', {
+    totalScores: scores?.length,
+    page1: allScoresPage1?.length,
+    page2: allScoresPage2?.length,
+    pencaId: penca.id
+  });
+
+  // DEBUG: Ver scores de domingo 21
+  const domingo21RaceIds = races?.filter((r: any) => {
+    const dayName = raceDays?.find((rd: any) => rd.id === r.race_day_id)?.day_name;
+    return dayName === 'domingo 21';
+  }).map((r: any) => r.id) || [];
+  
+  const domingo21Scores = scores?.filter((s: any) => domingo21RaceIds.includes(s.race_id)) || [];
+  console.log('[SERVER DEBUG] Domingo 21 scores loaded:', domingo21Scores.length);
+  console.log('[SERVER DEBUG] Sample scores:', domingo21Scores.slice(0, 3).map((s: any) => ({
+    membership_id: s.membership_id,
+    race_id: s.race_id,
+    points: s.points_total
+  })));
 
   // Obtener todas las predicciones con los detalles de los caballos
   const { data: predictions } = await supabase

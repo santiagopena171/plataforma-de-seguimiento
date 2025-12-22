@@ -148,10 +148,20 @@ export default async function PublicPencaPage({ params }: PageProps) {
   });
 
   // Obtener scores y miembros usando admin client para computation del leaderboard
-  const { data: scores } = await supabaseAdmin
+  // Obtener scores en múltiples páginas para evitar límite de 1000
+  const { data: scoresPage1 } = await supabaseAdmin
     .from('scores')
     .select('*')
-    .eq('penca_id', penca.id);
+    .eq('penca_id', penca.id)
+    .range(0, 999);
+    
+  const { data: scoresPage2 } = await supabaseAdmin
+    .from('scores')
+    .select('*')
+    .eq('penca_id', penca.id)
+    .range(1000, 1999);
+    
+  const scores = [...(scoresPage1 || []), ...(scoresPage2 || [])];
 
   const { data: memberships } = await supabaseAdmin
     .from('memberships')

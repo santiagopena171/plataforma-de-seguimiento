@@ -5,6 +5,10 @@ import Link from 'next/link';
 import LogoutButton from '@/components/LogoutButton';
 import RefreshButton from '@/components/RefreshButton';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+// Force rebuild: 2025-12-22-public-scores-fix
+
 // Función para formatear la hora sin conversión de zona horaria
 function formatRaceTime(isoString: string): string {
   // Extraer solo la parte HH:MM del ISO string
@@ -118,6 +122,7 @@ export default async function PencaPage({ params }: PencaPageProps) {
   const { data: leaderboard } = await supabase
     .from('memberships')
     .select(`
+      id,
       user_id,
       guest_name,
       profiles (
@@ -129,11 +134,25 @@ export default async function PencaPage({ params }: PencaPageProps) {
   // Calcular puntos totales para cada usuario
   const leaderboardWithPoints: LeaderboardPlayer[] = await Promise.all(
     (leaderboard || []).map(async (member) => {
-      const { data: memberScores } = await supabase
+      // Buscar scores por membership_id (cubre usuarios y guests)
+      // Obtener scores en múltiples páginas para evitar límite de 1000
+      const { data: memberScoresPage1 } = await supabase
         .from('scores')
         .select('points_total')
-        .eq('user_id', member.user_id)
-        .eq('penca_id', penca.id);
+        .eq('membership_id', member.id)
+        .eq('penca_id', penca.id)
+        .range(0, 999);
+        
+      const { data: memberScoresPage2 } = await supabase
+        .from('scores')
+        .select('points_total')
+        .eq('membership_id', member.id)
+        .eq('penca_id', penca.id)
+        .range(1000, 1999);
+        
+      const memberScores = [...(memberScoresPage1 || []), ...(memberScoresPage2 || [])];
+      
+      console.log(`[PUBLIC DEBUG] ${member.guest_name || 'Usuario'}: page1=${memberScoresPage1?.length}, page2=${memberScoresPage2?.length}, total scores=${memberScores.length}`);
 
       const totalPoints = memberScores?.reduce((sum, score) => sum + (score.points_total || 0), 0) || 0;
 
