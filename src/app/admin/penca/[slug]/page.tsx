@@ -183,21 +183,49 @@ export default async function ManagePencaPage({ params }: PageProps) {
     points: s.points_total
   })));
 
-  // Obtener todas las predicciones con los detalles de los caballos
-  const { data: predictions } = await supabase
+  // Obtener todas las predicciones usando admin client con paginación
+  const { data: predictionsPage1 } = await supabaseAdmin
     .from('predictions')
-    .select(`
-      *,
-      winner_entry:race_entries!predictions_winner_pick_fkey (
-        id,
-        program_number,
-        horse_name:label
-      )
-    `)
-    .in('race_id', races?.map((r: any) => r.id) || []);
+    .select('*')
+    .in('race_id', races?.map((r: any) => r.id) || [])
+    .range(0, 999);
+    
+  const { data: predictionsPage2 } = await supabaseAdmin
+    .from('predictions')
+    .select('*')
+    .in('race_id', races?.map((r: any) => r.id) || [])
+    .range(1000, 1999);
+    
+  const { data: predictionsPage3 } = await supabaseAdmin
+    .from('predictions')
+    .select('*')
+    .in('race_id', races?.map((r: any) => r.id) || [])
+    .range(2000, 2999);
+    
+  const { data: predictionsPage4 } = await supabaseAdmin
+    .from('predictions')
+    .select('*')
+    .in('race_id', races?.map((r: any) => r.id) || [])
+    .range(3000, 3999);
+    
+  const predictions = [
+    ...(predictionsPage1 || []), 
+    ...(predictionsPage2 || []),
+    ...(predictionsPage3 || []),
+    ...(predictionsPage4 || [])
+  ];
+  
+  console.log('[DEBUG] Predictions Query:', {
+    count: predictions?.length,
+    page1: predictionsPage1?.length,
+    page2: predictionsPage2?.length,
+    page3: predictionsPage3?.length,
+    page4: predictionsPage4?.length,
+    withWinnerPick: predictions?.filter(p => p.winner_pick).length
+  });
 
-  // Obtener resultados oficiales publicados
-  const { data: raceResults } = await supabase
+  // Obtener resultados oficiales publicados usando admin client
+  const { data: raceResults } = await supabaseAdmin
     .from('race_results')
     .select('*')
     .in('race_id', races?.map((r: any) => r.id) || []);

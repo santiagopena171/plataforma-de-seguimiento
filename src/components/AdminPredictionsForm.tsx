@@ -83,27 +83,35 @@ export default function AdminPredictionsForm({
       // Validar que todas las predicciones tengan ganador
       for (const player of players) {
         const pred = predictions[player.membership_id];
-        if (!pred?.winner) {
+        if (!pred?.winner || pred.winner.trim() === '') {
           throw new Error(`Falta seleccionar el ganador para ${player.name}`);
         }
       }
 
-      // Enviar predicciones al servidor
+      // Enviar predicciones al servidor (solo las que tienen valores válidos)
+      const validPredictions = Object.entries(predictions)
+        .filter(([_, pred]) => pred.winner && pred.winner.trim() !== '')
+        .map(([membershipId, pred]) => {
+          const player = players.find(p => p.membership_id === membershipId);
+          return {
+            membership_id: membershipId,
+            user_id: player?.user_id || null,
+            winner_pick: pred.winner,
+            exacta_pick: null,
+            trifecta_pick: null,
+            entered_by_admin: true,
+          };
+        });
+
+      if (validPredictions.length === 0) {
+        throw new Error('No hay predicciones válidas para guardar');
+      }
+
       const response = await fetch(`/api/admin/races/${raceId}/batch-predictions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          predictions: Object.entries(predictions).map(([membershipId, pred]) => {
-            const player = players.find(p => p.membership_id === membershipId);
-            return {
-              membership_id: membershipId,
-              user_id: player?.user_id || null,
-              winner_pick: pred.winner,
-              exacta_pick: null,
-              trifecta_pick: null,
-              entered_by_admin: true,
-            };
-          }),
+          predictions: validPredictions,
         }),
       });
 
@@ -114,7 +122,8 @@ export default function AdminPredictionsForm({
 
       setSuccess(true);
       setTimeout(() => {
-        router.push(`/admin/penca/${pencaSlug}`);
+        // Forzar recarga completa para que se actualicen los datos
+        window.location.href = `/admin/penca/${pencaSlug}`;
       }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');

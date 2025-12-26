@@ -846,7 +846,9 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
                           {dayRaces.map((race) => {
                             const raceResult = raceResults.find(r => r.race_id === race.id);
                             const predsForRace = (predictions || []).filter((p: any) => p.race_id === race.id);
-                            const uniquePredKeys = new Set(predsForRace.map((p: any) => p.membership_id || p.user_id)).size;
+                            // Contar solo predicciones válidas (que tienen winner_pick)
+                            const validPreds = predsForRace.filter((p: any) => p.winner_pick);
+                            const uniquePredKeys = new Set(validPreds.map((p: any) => p.membership_id || p.user_id)).size;
 
                             return (
                               <div
