@@ -121,6 +121,7 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
   const [deletingDay, setDeletingDay] = useState<string | null>(null);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+  const [extractingRaces, setExtractingRaces] = useState<string | null>(null);
 
   // Filtrar solo miembros no-admin (jugadores reales)
   const actualMembers = memberships?.filter(m => m.role !== 'admin') || [];
@@ -220,6 +221,238 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
       alert('Error al eliminar el día');
     } finally {
       setDeletingDay(null);
+    }
+  };
+
+  const handleExtractRaces = async (dayId: string) => {
+    try {
+      setExtractingRaces(dayId);
+
+      // Fetch race results summary data
+      const response = await fetch(`/api/admin/pencas/${pencaSlug}/race-days/${dayId}/extract-summary`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        throw new Error(errorData.error || 'Error al obtener el resumen de carreras');
+      }
+
+      const data = await response.json();
+      console.log('Data received:', data);
+
+      // Construir el mapa de jugadores procesando las carreras
+      const playersMap = new Map<string, { name: string; racePoints: number[]; total: number }>();
+
+      // Recorrer cada carrera y procesar sus scores
+      if (data.races && data.races.length > 0) {
+        data.races.forEach((race: any, raceIndex: number) => {
+          console.log(`Processing race ${raceIndex} (C#${race.seq}):`, race);
+          if (race.scores && race.scores.length > 0) {
+            race.scores.forEach((score: any) => {
+              console.log(`  Score: ${score.playerName} = ${score.points} pts (membership: ${score.membershipId})`);
+              
+              // Si el jugador no existe en el map, crearlo
+              if (!playersMap.has(score.membershipId)) {
+                playersMap.set(score.membershipId, {
+                  name: score.playerName,
+                  racePoints: new Array(data.races.length).fill(0),
+                  total: 0,
+                });
+              }
+              
+              // Asignar los puntos de esta carrera
+              const player = playersMap.get(score.membershipId)!;
+              player.racePoints[raceIndex] = score.points || 0;
+              player.total += score.points || 0;
+            });
+          }
+        });
+      }
+
+      console.log('Final players map:', Array.from(playersMap.entries()));
+
+      // Ordenar jugadores por total de puntos
+      const sortedPlayers = Array.from(playersMap.values()).sort((a, b) => b.total - a.total);
+
+      console.log('Sorted players:', sortedPlayers);
+
+      // Verificar si hay datos para mostrar
+      if (sortedPlayers.length === 0) {
+        alert('⚠️ No hay jugadores con predicciones en este día.');
+        setExtractingRaces(null);
+        return;
+      }
+
+      // Verificar si hay puntos calculados (solo advertencia, no bloquear)
+      const hasAnyPoints = sortedPlayers.some(p => p.total > 0);
+      console.log('Has any points?', hasAnyPoints);
+
+      if (!hasAnyPoints) {
+        console.warn('Warning: No points calculated yet for this day');
+      }
+
+      // Create a temporary div to render the summary
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.width = 'auto';
+      tempDiv.style.padding = '30px';
+      tempDiv.style.backgroundColor = 'white';
+      tempDiv.style.fontFamily = 'Arial, sans-serif';
+
+      // Build the HTML content - Estilo tabla Excel
+      let html = `
+        <div style="text-align: center; margin-bottom: 25px;">
+          <h1 style="font-size: 28px; font-weight: bold; color: #1f2937; margin-bottom: 8px;">
+            ${data.pencaName}
+          </h1>
+          <h2 style="font-size: 20px; font-weight: 600; color: #4b5563; margin-bottom: 5px;">
+            ${data.dayName}
+          </h2>
+          ${data.dayDate ? `
+            <p style="font-size: 14px; color: #6b7280;">
+              ${new Date(data.dayDate).toLocaleDateString('es-UY', { dateStyle: 'long' })}
+            </p>
+          ` : ''}
+        </div>
+        <div style="border-top: 2px solid #4f46e5; margin-bottom: 20px;"></div>
+      `;
+
+      if (data.races && data.races.length > 0 && sortedPlayers.length > 0) {
+        // Calcular ancho dinámico basado en número de carreras
+        const cellWidth = 70;
+        const nameWidth = 150;
+        const totalWidth = 80;
+        const tableWidth = nameWidth + (data.races.length * cellWidth) + totalWidth;
+
+        html += `
+          <table style="width: ${tableWidth}px; border-collapse: collapse; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">
+                <th style="padding: 12px; text-align: left; color: white; font-weight: bold; font-size: 14px; border: 1px solid #4338ca; width: ${nameWidth}px;">
+                  Jugador
+                </th>
+        `;
+
+        // Headers de carreras
+        data.races.forEach((race: any) => {
+          html += `
+            <th style="padding: 12px; text-align: center; color: white; font-weight: bold; font-size: 13px; border: 1px solid #4338ca; width: ${cellWidth}px;">
+              C#${race.seq}
+            </th>
+          `;
+        });
+
+        html += `
+                <th style="padding: 12px; text-align: center; color: white; font-weight: bold; font-size: 14px; border: 1px solid #4338ca; width: ${totalWidth}px; background: #312e81;">
+                  TOTAL
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        // Filas de jugadores
+        sortedPlayers.forEach((player, playerIndex) => {
+          const rowBg = playerIndex % 2 === 0 ? '#f9fafb' : '#ffffff';
+          const rankEmoji = playerIndex === 0 ? '🥇' : playerIndex === 1 ? '🥈' : playerIndex === 2 ? '🥉' : '';
+          
+          html += `
+            <tr style="background-color: ${rowBg};">
+              <td style="padding: 10px 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #1f2937; font-size: 14px; background: ${rowBg};">
+                ${rankEmoji} ${player.name}
+              </td>
+          `;
+
+          // Puntos por carrera
+          player.racePoints.forEach((points) => {
+            const pointsColor = points > 0 ? '#4f46e5' : '#9ca3af';
+            const pointsWeight = points > 0 ? 'bold' : 'normal';
+            html += `
+              <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; color: ${pointsColor}; font-weight: ${pointsWeight}; font-size: 14px;">
+                ${points}
+              </td>
+            `;
+          });
+
+          html += `
+              <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; color: #1f2937; font-weight: bold; font-size: 16px; background-color: ${playerIndex < 3 ? '#eef2ff' : rowBg};">
+                ${player.total}
+              </td>
+            </tr>
+          `;
+        });
+
+        html += `
+            </tbody>
+          </table>
+          
+          <div style="margin-top: 20px; padding: 12px; background-color: #f9fafb; border-radius: 6px; width: ${tableWidth}px; margin-left: auto; margin-right: auto; border: 1px solid #e5e7eb;">
+            <h4 style="font-size: 13px; font-weight: bold; color: #374151; margin: 0 0 8px 0;">🏁 Resultados Oficiales</h4>
+            <div style="display: grid; gap: 6px; font-size: 11px; line-height: 1.5;">
+        `;
+
+        data.races.forEach((race: any) => {
+          const result = race.officialResult;
+          if (result && (result.first || result.second || result.third || result.fourth)) {
+            const positions = [];
+            if (result.first) positions.push(`🥇 ${result.first}`);
+            if (result.second) positions.push(`🥈 ${result.second}`);
+            if (result.third) positions.push(`🥉 ${result.third}`);
+            if (result.fourth) positions.push(`4° ${result.fourth}`);
+            
+            html += `
+              <div style="color: #4b5563;">
+                <strong style="color: #4f46e5;">C#${race.seq}:</strong> ${positions.join(' • ')}
+              </div>
+            `;
+          } else {
+            html += `
+              <div style="color: #9ca3af;">
+                <strong style="color: #6b7280;">C#${race.seq}:</strong> <em>Pendiente</em>
+              </div>
+            `;
+          }
+        });
+
+        html += `
+            </div>
+          </div>
+        `;
+      } else {
+        html += '<p style="text-align: center; color: #9ca3af; font-size: 16px;">No hay datos disponibles para este día</p>';
+      }
+
+      tempDiv.innerHTML = html;
+      document.body.appendChild(tempDiv);
+
+      // Generate image using html2canvas
+      const canvas = await html2canvas(tempDiv, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+        useCORS: true,
+      });
+
+      document.body.removeChild(tempDiv);
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          const dayName = data.dayName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+          link.download = `resumen_${dayName}_${Date.now()}.jpg`;
+          link.href = url;
+          link.click();
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/jpeg', 0.95);
+    } catch (err) {
+      console.error('Error completo:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      alert(`Error al extraer el resumen de carreras: ${errorMessage}`);
+    } finally {
+      setExtractingRaces(null);
     }
   };
 
@@ -823,6 +1056,13 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
                             className="text-sm px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                           >
                             📤 Cargar Predicciones
+                          </button>
+                          <button
+                            onClick={() => handleExtractRaces(selectedDay.id)}
+                            disabled={extractingRaces === selectedDay.id}
+                            className="text-sm px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            {extractingRaces === selectedDay.id ? 'Generando...' : '📊 Extraer Carreras'}
                           </button>
                           <Link
                             href={`/admin/penca/${pencaSlug}/race/new?dayId=${selectedDay.id}`}
