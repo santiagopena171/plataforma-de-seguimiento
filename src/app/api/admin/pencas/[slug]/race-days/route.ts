@@ -52,6 +52,15 @@ export async function POST(
       );
     }
 
+    // Validar num_races si se proporciona
+    const numRaces = body.num_races || 0;
+    if (numRaces < 0 || numRaces > 20) {
+      return NextResponse.json(
+        { error: 'num_races debe estar entre 0 y 20' },
+        { status: 400 }
+      );
+    }
+
     // Obtener penca por slug
     const { data: penca, error: pencaError } = await supabaseAdmin
       .from('pencas')
@@ -62,6 +71,17 @@ export async function POST(
     if (pencaError || !penca) {
       return NextResponse.json({ error: 'Penca no encontrada' }, { status: 404 });
     }
+
+    // Obtener el último número de secuencia de carrera para continuar la numeración
+    const { data: lastRace } = await supabaseAdmin
+      .from('races')
+      .select('seq')
+      .eq('penca_id', penca.id)
+      .order('seq', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextSeq = (lastRace?.seq ?? 0) + 1;
 
     // Crear día de carrera
     const { data, error } = await supabaseAdmin
@@ -86,6 +106,59 @@ export async function POST(
         );
       }
       throw error;
+    }
+
+    // Crear las carreras si se especificó num_races
+    if (numRaces > 0) {
+      const races = [];
+      for (let i = 0; i < numRaces; i++) {
+        const raceSeq = nextSeq + i;
+        
+        // Crear la carrera
+        const { data: race, error: raceError } = await supabaseAdmin
+          .from('races')
+          .insert({
+            penca_id: penca.id,
+            seq: raceSeq,
+            venue: body.day_name, // Usar el nombre del día como venue por defecto
+            distance_m: 1600, // Distancia por defecto
+            start_at: new Date().toISOString(), // Fecha/hora por defecto
+            status: 'scheduled',
+            race_day_id: data.id,
+          })
+          .select()
+          .single();
+
+        if (raceError) {
+          console.error(`Error creating race ${raceSeq}:`, raceError);
+          continue; // Continuar con las demás carreras aunque una falle
+        }
+
+        if (race) {
+          races.push(race);
+
+          // Crear 15 caballos para esta carrera
+          const entries = Array.from({ length: 15 }, (_, j) => ({
+            race_id: race.id,
+            program_number: j + 1,
+            label: `Caballo ${j + 1}`,
+          }));
+
+          const { error: entriesError } = await supabaseAdmin
+            .from('race_entries')
+            .insert(entries);
+
+          if (entriesError) {
+            console.error(`Error creating entries for race ${raceSeq}:`, entriesError);
+          }
+        }
+      }
+
+      return NextResponse.json({ 
+        ...data, 
+        races_created: races.length,
+        starting_race_number: nextSeq 
+      }, { status: 201 });
     }
 
     return NextResponse.json(data, { status: 201 });

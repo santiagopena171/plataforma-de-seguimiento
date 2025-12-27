@@ -16,6 +16,7 @@ export default function AddRaceDayModal({ pencaSlug, pencaId, onClose, existingD
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     dayName: '',
+    numRaces: 1,
   });
 
   // Calcular el próximo número de día
@@ -35,6 +36,7 @@ export default function AddRaceDayModal({ pencaSlug, pencaId, onClose, existingD
         body: JSON.stringify({
           day_number: nextDayNumber,
           day_name: formData.dayName,
+          num_races: formData.numRaces,
         }),
       });
 
@@ -96,6 +98,24 @@ export default function AddRaceDayModal({ pencaSlug, pencaId, onClose, existingD
               placeholder="ej: Sábado, Clásicos, Jornada 1"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Cantidad de Carreras *
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="20"
+              value={formData.numRaces}
+              onChange={(e) => setFormData({ ...formData, numRaces: parseInt(e.target.value) || 1 })}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              required
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Se crearán las carreras automáticamente con 15 caballos cada una
+            </p>
           </div>
 
           <div className="flex gap-3 mt-6">
