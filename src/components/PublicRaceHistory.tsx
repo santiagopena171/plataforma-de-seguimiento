@@ -26,6 +26,7 @@ interface RaceResult {
   first_place: string;
   second_place: string;
   third_place: string;
+  fourth_place: string;
 }
 
 interface PublicRaceHistoryProps {
@@ -102,15 +103,18 @@ export default function PublicRaceHistory({
                     </h3>
 
                     {result && (
-                      <div className="mt-3 flex gap-4 text-sm">
+                      <div className="mt-3 flex flex-wrap gap-4 text-sm">
                         <span className="text-gray-700">
-                          🥇 1°: <span className="font-medium">#{(entriesByRace[race.id] && entriesByRace[race.id][result.first_place]?.program_number) || result.first_place}</span>
+                          🥇 <span className="font-medium">#{(entriesByRace[race.id] && entriesByRace[race.id][result.first_place]?.program_number) || '?'}</span>
                         </span>
                         <span className="text-gray-700">
-                          🥈 2°: <span className="font-medium">#{(entriesByRace[race.id] && entriesByRace[race.id][result.second_place]?.program_number) || result.second_place}</span>
+                          🥈 <span className="font-medium">#{(entriesByRace[race.id] && entriesByRace[race.id][result.second_place]?.program_number) || '?'}</span>
                         </span>
                         <span className="text-gray-700">
-                          🥉 3°: <span className="font-medium">#{(entriesByRace[race.id] && entriesByRace[race.id][result.third_place]?.program_number) || result.third_place}</span>
+                          🥉 <span className="font-medium">#{(entriesByRace[race.id] && entriesByRace[race.id][result.third_place]?.program_number) || '?'}</span>
+                        </span>
+                        <span className="text-gray-700">
+                          <span className="font-semibold">4°</span> <span className="font-medium">#{(entriesByRace[race.id] && entriesByRace[race.id][result.fourth_place]?.program_number) || '?'}</span>
                         </span>
                       </div>
                     )}

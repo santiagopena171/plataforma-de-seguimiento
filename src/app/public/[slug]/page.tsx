@@ -11,6 +11,19 @@ interface PageProps {
   };
 }
 
+const normalizeRaceResult = (result: any) => {
+  if (!result) return result;
+  const order = Array.isArray(result.official_order) ? result.official_order : [];
+  const [first, second, third, fourth] = order;
+  return {
+    ...result,
+    first_place: result.first_place || first || null,
+    second_place: result.second_place || second || null,
+    third_place: result.third_place || third || null,
+    fourth_place: result.fourth_place || fourth || null,
+  };
+};
+
 const getRaceStartDate = (race?: any) => {
   if (!race) return null;
   const candidates = [
@@ -97,13 +110,16 @@ export default async function PublicPencaPage({ params }: PageProps) {
   // Obtener resultados de las carreras
   const raceIds = races?.map((r: any) => r.id) || [];
 
-  const { data: raceResults } = await supabaseAdmin
+  const { data: fetchedResults } = await supabaseAdmin
     .from('race_results')
     .select('*')
     .in('race_id', raceIds);
 
+  // Normalizar resultados inmediatamente
+  const raceResults = (fetchedResults || []).map((result: any) => normalizeRaceResult(result));
+
   const raceIdsWithResults = new Set(
-    (raceResults || []).map((result: any) => result.race_id)
+    raceResults.map((result: any) => result.race_id)
   );
 
   const publishedRaces = (races || [])
@@ -135,8 +151,45 @@ export default async function PublicPencaPage({ params }: PageProps) {
     .select('id, program_number, race_id')
     .in('race_id', raceIds);
 
+  let entries = allEntries || [];
+
+  // Obtener entries de los resultados oficiales con batching
+  const resultEntryIds = Array.from(
+    new Set(
+      raceResults
+        .flatMap((result: any) => [
+          result.first_place,
+          result.second_place,
+          result.third_place,
+          result.fourth_place,
+        ])
+        .filter(Boolean)
+    )
+  );
+
+  if (resultEntryIds.length > 0) {
+    const BATCH_SIZE = 100;
+    const resultEntriesBatches: any[] = [];
+    
+    for (let i = 0; i < resultEntryIds.length; i += BATCH_SIZE) {
+      const batch = resultEntryIds.slice(i, i + BATCH_SIZE);
+      const { data: batchData } = await supabaseAdmin
+        .from('race_entries')
+        .select('id, program_number, race_id')
+        .in('id', batch);
+      
+      if (batchData) {
+        resultEntriesBatches.push(...batchData);
+      }
+    }
+    
+    if (resultEntriesBatches.length > 0) {
+      entries = entries.concat(resultEntriesBatches);
+    }
+  }
+
   const entriesByRace: Record<string, Record<string, any>> = {};
-  (allEntries || []).forEach((e: any) => {
+  entries.forEach((e: any) => {
     if (!entriesByRace[e.race_id]) entriesByRace[e.race_id] = {};
     entriesByRace[e.race_id][e.id] = e;
   });
