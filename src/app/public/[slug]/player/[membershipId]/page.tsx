@@ -72,7 +72,8 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
       .from('race_results')
       .select('*')
       .in('race_id', allRaceIds);
-    raceResults = fetchedResults || [];
+    // Normalizar resultados inmediatamente después de obtenerlos
+    raceResults = (fetchedResults || []).map((result: any) => normalizeRaceResult(result));
   }
 
   const raceIdsWithResults = new Set(
@@ -153,11 +154,44 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
     entries = entries.concat(extraEntries || []);
   }
 
+  // Obtener entries de los resultados oficiales (ya normalizados)
+  const resultEntryIds = Array.from(
+    new Set(
+      raceResults
+        .flatMap((result: any) => [
+          result.first_place,
+          result.second_place,
+          result.third_place,
+          result.fourth_place,
+        ])
+        .filter(Boolean)
+    )
+  );
+
+  // Hacer consultas en lotes para evitar límites de URL
+  if (resultEntryIds.length > 0) {
+    const BATCH_SIZE = 100; // Consultar máximo 100 IDs a la vez
+    const resultEntriesBatches: any[] = [];
+    
+    for (let i = 0; i < resultEntryIds.length; i += BATCH_SIZE) {
+      const batch = resultEntryIds.slice(i, i + BATCH_SIZE);
+      const { data: batchData } = await supabase
+        .from('race_entries')
+        .select('id, race_id, program_number, horse_name:label')
+        .in('id', batch);
+      
+      if (batchData) {
+        resultEntriesBatches.push(...batchData);
+      }
+    }
+    
+    if (resultEntriesBatches.length > 0) {
+      entries = entries.concat(resultEntriesBatches);
+    }
+  }
+
   const resultsMap = new Map(
-    raceResults.map((result: any) => {
-      const normalized = normalizeRaceResult(result);
-      return [normalized.race_id, normalized];
-    })
+    raceResults.map((result: any) => [result.race_id, result])
   );
   const predictionsMap = new Map(
     predictions.map((prediction: any) => [prediction.race_id, prediction])
