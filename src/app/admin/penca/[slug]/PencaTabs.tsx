@@ -365,7 +365,7 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
 
           // Puntos por carrera
           player.racePoints.forEach((points) => {
-            const pointsColor = points > 0 ? '#4f46e5' : '#9ca3af';
+            const pointsColor = points > 0 ? '#4f46e5' : '#374151';
             const pointsWeight = points > 0 ? 'bold' : 'normal';
             html += `
               <td style="padding: 10px; border: 1px solid #e5e7eb; text-align: center; color: ${pointsColor}; font-weight: ${pointsWeight}; font-size: 14px;">
@@ -407,7 +407,7 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
             `;
           } else {
             html += `
-              <div style="color: #9ca3af;">
+              <div style="color: #6b7280;">
                 <strong style="color: #6b7280;">C#${race.seq}:</strong> <em>Pendiente</em>
               </div>
             `;
@@ -419,7 +419,7 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
           </div>
         `;
       } else {
-        html += '<p style="text-align: center; color: #9ca3af; font-size: 16px;">No hay datos disponibles para este día</p>';
+        html += `<p style="text-align: center; color: #6b7280; font-size: 16px;">No hay datos disponibles para este día</p>`;
       }
 
       tempDiv.innerHTML = html;
@@ -489,7 +489,7 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
           <p style="font-size: 16px; color: #6b7280; margin-bottom: 5px;">
             ${data.race.venue} • ${data.race.distance_m}m
           </p>
-          <p style="font-size: 14px; color: #9ca3af;">
+          <p style="font-size: 14px; color: #6b7280;">
             ${new Date(data.race.start_at).toLocaleDateString('es-UY', { dateStyle: 'long' })}
           </p>
         </div>
@@ -528,7 +528,7 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
         });
         html += '</div>';
       } else {
-        html += '<p style="text-align: center; color: #9ca3af; font-size: 16px;">No hay predicciones registradas</p>';
+        html += `<p style="text-align: center; color: #6b7280; font-size: 16px;">No hay predicciones registradas</p>`;
       }
 
       tempDiv.innerHTML = html;
@@ -825,7 +825,7 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
           <p style="font-size: 16px; color: #6b7280; margin-bottom: 5px;">
             ${data.race.venue} • ${data.race.distance_m}m
           </p>
-          <p style="font-size: 14px; color: #9ca3af;">
+          <p style="font-size: 14px; color: #6b7280;">
             ${new Date(data.race.start_at).toLocaleDateString('es-UY', { dateStyle: 'long' })}
           </p>
         </div>
@@ -898,7 +898,7 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
         });
         html += '</div>';
       } else {
-        html += '<p style="text-align: center; color: #9ca3af; font-size: 16px;">No hay predicciones registradas</p>';
+        html += `<p style="text-align: center; color: #6b7280; font-size: 16px;">No hay predicciones registradas</p>`;
       }
 
       tempDiv.innerHTML = html;

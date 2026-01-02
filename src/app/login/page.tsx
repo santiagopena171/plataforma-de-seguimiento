@@ -13,9 +13,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [lastAttempt, setLastAttempt] = useState(0);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevenir múltiples intentos rápidos (cooldown de 2 segundos)
+    const now = Date.now();
+    if (now - lastAttempt < 2000) {
+      setError('Por favor espera un momento antes de intentar nuevamente');
+      return;
+    }
+    setLastAttempt(now);
+    
     setError(null);
     setLoading(true);
 
@@ -25,7 +35,13 @@ export default function LoginPage() {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Mensaje más amigable para rate limit
+        if (error.message.includes('rate limit') || error.message.includes('too many')) {
+          throw new Error('Demasiados intentos. Por favor espera unos minutos e intenta nuevamente.');
+        }
+        throw error;
+      }
 
       if (data.user) {
         // Verificar si es admin
