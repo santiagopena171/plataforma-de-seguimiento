@@ -7,6 +7,7 @@ import DeleteRaceButton from '@/components/DeleteRaceButton';
 import AddMemberModal from './AddMemberModal';
 import AddRaceDayModal from '@/components/AddRaceDayModal';
 import BulkPredictionUploadModal from '@/components/BulkPredictionUploadModal';
+import LiveStreamsManager from '@/components/LiveStreamsManager';
 import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
 
@@ -100,6 +101,7 @@ interface RaceResult {
 
 interface PencaTabsProps {
   pencaSlug: string;
+  pencaId: string;
   races: Race[];
   raceDays: RaceDay[];
   memberships: Member[];
@@ -110,9 +112,9 @@ interface PencaTabsProps {
   invitesCount: number;
 }
 
-export default function PencaTabs({ pencaSlug, races, raceDays, memberships, numParticipants, scores, predictions, raceResults, invitesCount }: PencaTabsProps) {
+export default function PencaTabs({ pencaSlug, pencaId, races, raceDays, memberships, numParticipants, scores, predictions, raceResults, invitesCount }: PencaTabsProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'races' | 'members' | 'leaderboard'>('races');
+  const [activeTab, setActiveTab] = useState<'races' | 'members' | 'leaderboard' | 'streams'>('races');
   const [expandedMember, setExpandedMember] = useState<string | null>(null);
   const [closingRace, setClosingRace] = useState<string | null>(null);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
@@ -968,6 +970,15 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
           >
             Tabla de Posiciones
           </button>
+          <button
+            onClick={() => setActiveTab('streams')}
+            className={`flex-shrink-0 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'streams'
+              ? 'border-indigo-500 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+          >
+            🔴 Transmisiones
+          </button>
           <Link
             href={`/admin/penca/${pencaSlug}/config`}
             className="flex-shrink-0 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
@@ -1615,6 +1626,13 @@ export default function PencaTabs({ pencaSlug, races, raceDays, memberships, num
                 <p className="text-gray-500">No hay miembros en la penca</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Streams Tab */}
+        {activeTab === 'streams' && (
+          <div>
+            <LiveStreamsManager pencaId={pencaId} />
           </div>
         )}
       </div>

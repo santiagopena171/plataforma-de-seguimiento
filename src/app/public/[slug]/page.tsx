@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import PublicRaceHistory from '@/components/PublicRaceHistory';
+import YouTubeLiveEmbed from '@/components/YouTubeLiveEmbed';
 
 interface PageProps {
   params: {
@@ -225,6 +226,14 @@ export default async function PublicPencaPage({ params }: PageProps) {
       )
     `)
     .eq('penca_id', penca.id);
+
+  // Obtener streams en vivo activos de la penca
+  const { data: liveStreams } = await supabaseAdmin
+    .from('live_streams')
+    .select('*')
+    .eq('penca_id', penca.id)
+    .eq('is_active', true)
+    .order('display_order', { ascending: true });
 
   const baseMemberships = memberships || [];
   const membershipUserIds = new Set(
@@ -449,6 +458,39 @@ export default async function PublicPencaPage({ params }: PageProps) {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Live Streams Section */}
+        {liveStreams && liveStreams.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <span className="text-red-600">🔴</span>
+              Transmisiones en Vivo
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {liveStreams.map((stream: any) => (
+                <YouTubeLiveEmbed
+                  key={stream.id}
+                  videoId={stream.youtube_video_id || undefined}
+                  channelId={stream.youtube_channel_id || undefined}
+                  title={stream.title}
+                />
+              ))}
+            </div>
+            {liveStreams.some((s: any) => s.description) && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                {liveStreams.map((stream: any) => (
+                  stream.description && (
+                    <div key={stream.id} className="mb-2 last:mb-0">
+                      <p className="text-sm text-blue-800">
+                        <strong>{stream.title}:</strong> {stream.description}
+                      </p>
+                    </div>
+                  )
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Quick diagnostics */}
         <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-white rounded-lg shadow p-4 text-center">

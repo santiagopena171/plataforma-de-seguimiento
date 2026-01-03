@@ -291,6 +291,7 @@ export default async function ManagePencaPage({ params }: PageProps) {
         {/* Tabs */}
         <PencaTabs
           pencaSlug={params.slug}
+          pencaId={penca.id}
           races={races || []}
           raceDays={raceDays || []}
           memberships={memberships || []}
