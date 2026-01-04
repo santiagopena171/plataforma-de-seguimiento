@@ -42,7 +42,7 @@ export default function HomePage() {
             onChange={(e) => setSlug(e.target.value)}
             placeholder="Código de la penca"
             autoComplete="off"
-            className="w-full px-4 py-3 border border-gray-200 rounded-md mb-4"
+            className="w-full px-4 py-3 border border-gray-200 rounded-md mb-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
 
           <button

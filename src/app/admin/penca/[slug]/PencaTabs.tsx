@@ -599,14 +599,14 @@ export default function PencaTabs({ pencaSlug, pencaId, races, raceDays, members
         <table style="border-collapse: collapse; font-size: 14px; width: auto;">
           <thead>
             <tr style="background-color: #f3f4f6;">
-              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: left; font-weight: 600;">Posición</th>
-              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: left; font-weight: 600;">Jugador</th>
+              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: left; font-weight: 600; color: #1f2937;">Posición</th>
+              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: left; font-weight: 600; color: #1f2937;">Jugador</th>
               <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; font-weight: 600; background-color: #10b981; color: white;">Total</th>
       `;
 
       // Agregar columnas para cada carrera publicada
       publishedRaces.forEach((race: Race) => {
-        html += `<th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; font-weight: 600;">Carrera #${race.seq}</th>`;
+        html += `<th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; font-weight: 600; color: #1f2937;">Carrera #${race.seq}</th>`;
       });
 
       html += `
@@ -621,16 +621,16 @@ export default function PencaTabs({ pencaSlug, pencaId, races, raceDays, members
 
         html += `
           <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
-            <td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center;">${index + 1}</td>
-            <td style="border: 1px solid #d1d5db; padding: 12px 16px;">${playerName}</td>
-            <td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; background-color: #d1fae5; font-weight: 600;">${totalPoints}</td>
+            <td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; color: #1f2937;">${index + 1}</td>
+            <td style="border: 1px solid #d1d5db; padding: 12px 16px; color: #1f2937;">${playerName}</td>
+            <td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; background-color: #d1fae5; font-weight: 600; color: #1f2937;">${totalPoints}</td>
         `;
 
         // Agregar puntos por cada carrera publicada
         publishedRaces.forEach((race: Race) => {
           const raceScore = memberScores.find(s => s.race_id === race.id);
           const points = raceScore?.points_total || 0;
-          html += `<td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center;">${points}</td>`;
+          html += `<td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; color: #1f2937;">${points}</td>`;
         });
 
         html += `</tr>`;
@@ -723,13 +723,13 @@ export default function PencaTabs({ pencaSlug, pencaId, races, raceDays, members
         <table style="border-collapse: collapse; font-size: 14px; width: auto;">
           <thead>
             <tr style="background-color: #f3f4f6;">
-              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: left; font-weight: 600;">Posición</th>
-              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: left; font-weight: 600;">Jugador</th>
+              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: left; font-weight: 600; color: #1f2937;">Posición</th>
+              <th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: left; font-weight: 600; color: #1f2937;">Jugador</th>
       `;
 
       // Agregar columnas para cada día
       raceDays.forEach((day) => {
-        html += `<th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; font-weight: 600;">${day.day_name}</th>`;
+        html += `<th style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; font-weight: 600; color: #1f2937;">${day.day_name}</th>`;
       });
 
       html += `
@@ -746,16 +746,16 @@ export default function PencaTabs({ pencaSlug, pencaId, races, raceDays, members
 
         html += `
           <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f9fafb'};">
-            <td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center;">${medal} ${index + 1}</td>
-            <td style="border: 1px solid #d1d5db; padding: 12px 16px;">${playerName}</td>
+            <td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; color: #1f2937;">${medal} ${index + 1}</td>
+            <td style="border: 1px solid #d1d5db; padding: 12px 16px; color: #1f2937;">${playerName}</td>
         `;
 
         // Agregar puntos por día
         pointsByDay.forEach(({ points }) => {
-          html += `<td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center;">${points}</td>`;
+          html += `<td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; color: #1f2937;">${points}</td>`;
         });
 
-        html += `<td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; background-color: #d1fae5; font-weight: 600;">${totalPoints}</td>`;
+        html += `<td style="border: 1px solid #d1d5db; padding: 12px 16px; text-align: center; background-color: #d1fae5; font-weight: 600; color: #1f2937;">${totalPoints}</td>`;
         html += `</tr>`;
       });
 

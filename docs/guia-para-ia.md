@@ -4,7 +4,146 @@
 
 La página `/public/[slug]/player/[membershipId]` muestra todas las predicciones de un jugador específico en una penca, junto con los resultados oficiales y los puntos obtenidos en cada carrera.
 
-## Problema Original: Resultados Oficiales
+---
+
+## Problema Crítico: Límite de Carreras Mostradas (Enero 2026)
+
+### Síntomas
+- **Localhost**: Solo mostraba hasta la carrera #105-115
+- **Vercel**: Mostraba hasta la #139, pero carreras 130-139 decían "sin resultado registrado" (cuando sí lo estaban)
+- La cantidad de carreras mostradas variaba según el entorno
+
+### Diagnóstico
+1. **Verificación de datos**: Los datos en Supabase estaban correctos (228 carreras totales, 139 publicadas)
+2. **Tests de backend**: Las queries con Service Role Client funcionaban correctamente
+3. **Causa raíz identificada**: 
+   - Las consultas usando `.in('race_id', allRaceIds)` con arrays grandes (>100 elementos) fallan silenciosamente
+   - Límite de URL en PostgREST/Supabase: ~100 IDs por query
+   - Las queries se cortaban sin error visible, devolviendo solo datos parciales
+
+### Solución: Batching en TODAS las Consultas
+
+**Archivos modificados**: `src/app/public/[slug]/player/[membershipId]/page.tsx`
+
+Se implementó batching (lotes de 100 IDs) en todas las consultas que usan `.in()` con arrays grandes:
+
+#### 1. Race Results (líneas ~62-80)
+```typescript
+// ANTES (solo obtenía ~115 resultados):
+const { data: fetchedResults } = await supabase
+  .from('race_results')
+  .select('*')
+  .in('race_id', allRaceIds); // 228 IDs - EXCEDE LÍMITE
+
+// DESPUÉS (obtiene todos):
+const BATCH_SIZE = 100;
+const resultsBatches: any[] = [];
+
+for (let i = 0; i < allRaceIds.length; i += BATCH_SIZE) {
+  const batch = allRaceIds.slice(i, i + BATCH_SIZE);
+  const { data: batchData } = await supabase
+    .from('race_results')
+    .select('*')
+    .in('race_id', batch);
+  
+  if (batchData) {
+    resultsBatches.push(...batchData);
+  }
+}
+raceResults = resultsBatches.map((result: any) => normalizeRaceResult(result));
+```
+
+#### 2. Predictions (líneas ~107-147)
+```typescript
+const BATCH_SIZE = 100;
+
+// Buscar por membership_id en lotes
+const predictionsBatches: any[] = [];
+for (let i = 0; i < publishedRaceIds.length; i += BATCH_SIZE) {
+  const batch = publishedRaceIds.slice(i, i + BATCH_SIZE);
+  const { data: batchData } = await supabase
+    .from('predictions')
+    .select('id, race_id, winner_pick, exacta_pick, trifecta_pick, created_at')
+    .eq('membership_id', membership.id)
+    .in('race_id', batch);
+  if (batchData) {
+    predictionsBatches.push(...batchData);
+  }
+}
+predictions = predictionsBatches;
+
+// Fallback por user_id también en lotes
+if (predictions.length === 0 && membership.user_id) {
+  const fallbackPredictionsBatches: any[] = [];
+  for (let i = 0; i < publishedRaceIds.length; i += BATCH_SIZE) {
+    const batch = publishedRaceIds.slice(i, i + BATCH_SIZE);
+    const { data: batchData } = await supabase
+      .from('predictions')
+      .select('id, race_id, winner_pick, exacta_pick, trifecta_pick, created_at')
+      .eq('user_id', membership.user_id)
+      .in('race_id', batch);
+    if (batchData) {
+      fallbackPredictionsBatches.push(...batchData);
+    }
+  }
+  predictions = fallbackPredictionsBatches;
+}
+```
+
+#### 3. Scores (líneas ~149-180)
+```typescript
+// Mismo patrón: buscar por membership_id en lotes
+const scoresBatches: any[] = [];
+for (let i = 0; i < publishedRaceIds.length; i += BATCH_SIZE) {
+  const batch = publishedRaceIds.slice(i, i + BATCH_SIZE);
+  const { data: batchData } = await supabase
+    .from('scores')
+    .select('id, race_id, points_total, breakdown')
+    .eq('membership_id', membership.id)
+    .in('race_id', batch);
+  if (batchData) {
+    scoresBatches.push(...batchData);
+  }
+}
+scores = scoresBatches;
+
+// Fallback también en lotes
+if (scores.length === 0 && membership.user_id) {
+  // Similar al de predictions
+}
+```
+
+#### 4. Entries (líneas ~182-195)
+```typescript
+const entriesBatches: any[] = [];
+for (let i = 0; i < publishedRaceIds.length; i += BATCH_SIZE) {
+  const batch = publishedRaceIds.slice(i, i + BATCH_SIZE);
+  const { data: batchData } = await supabase
+    .from('race_entries')
+    .select('id, race_id, program_number, horse_name:label')
+    .in('race_id', batch);
+  if (batchData) {
+    entriesBatches.push(...batchData);
+  }
+}
+entries = entriesBatches;
+```
+
+### Verificación del Fix
+1. Limpiar caché: `Remove-Item -Recurse -Force .next`
+2. Reiniciar servidor: `npm run dev`
+3. Recargar navegador con Ctrl+Shift+R
+4. Verificar que muestre todas las 139 carreras
+
+### Lecciones Aprendidas
+- ⚠️ **CRÍTICO**: Cualquier query con `.in()` que pueda superar 100 elementos debe usar batching
+- El problema era silencioso: no generaba errores visibles, solo devolvía datos parciales
+- Afecta tanto a development como production
+- La caché de Next.js puede ocultar el fix hasta que se limpia
+
+---
+
+## Problema Original: Resultados Oficiales (Diciembre 2025)
 
 En la página pública de predicciones del jugador, los resultados oficiales de las carreras mostraban "caballo #?" en lugar de los números correctos.
 
@@ -115,30 +254,44 @@ entries.forEach(entry => {
 
 ## Lecciones Aprendidas
 
-1. **Límites de Supabase**: Las consultas `.in()` tienen límites en la cantidad de valores que pueden procesar
-2. **Batching es Necesario**: Para consultas con muchos IDs (>100), dividir en lotes de 100
+### De ambos problemas:
+1. **⚠️ REGLA CRÍTICA**: Cualquier consulta `.in()` con >100 elementos DEBE usar batching
+2. **Batching es Obligatorio**: Para consultas con arrays grandes, dividir en lotes de 100
 3. **Normalización Temprana**: Normalizar los resultados INMEDIATAMENTE después de obtenerlos de la BD
-4. **Debugging con Logs**: Los `console.log` en server-side fueron clave para identificar el problema
+4. **Debugging con Logs**: Los `console.log` en server-side son clave para identificar problemas
+5. **Errores Silenciosos**: Los límites de URL no generan errores, solo devuelven datos parciales
+6. **Caché de Next.js**: Limpiar `.next` es necesario para ver cambios críticos
 
 ## Aplicación en Otros Lugares
 
 Esta misma lógica de batching debe aplicarse en:
-- ✅ `/public/[slug]/player/[membershipId]/page.tsx` (IMPLEMENTADO)
-- 🔍 Cualquier otra página que consulte muchos entry IDs
+- ✅ `/public/[slug]/player/[membershipId]/page.tsx` - **TODAS las consultas** (IMPLEMENTADO - Enero 2026)
+- 🔍 Cualquier otra página que consulte muchos race IDs o entry IDs
 - 🔍 Consultas de predicciones cuando hay muchos jugadores
-- 🔍 Cualquier consulta `.in()` con >100 valores
+- 🔍 **CUALQUIER** consulta `.in()` con >100 valores
 
 ## Referencias
 
-- Archivo modificado: `src/app/public/[slug]/player/[membershipId]/page.tsx`
-- Script de diagnóstico: `debug_race_results.js`
-- Script de simulación: `debug_page_logic.js`
-- Líneas clave: 155-177 (batching logic)
+- Archivo principal: `src/app/public/[slug]/player/[membershipId]/page.tsx`
+- Scripts de diagnóstico: 
+  - `debug_race_results.js` (problema de entries)
+  - `debug_race_visibility.js` (problema de límite de carreras)
+  - `test_batched_queries.js` (verificación de batching)
+- Líneas clave del fix de enero 2026: 62-195 (batching en race_results, predictions, scores, entries)
 
 ---
 
-**Fecha de resolución**: 28 de diciembre de 2025
-**Problema**: Resultados oficiales mostrando "caballo #?"
+**Resolución Problema 1 (Diciembre 2025)**: 
+- **Problema**: Resultados oficiales mostrando "caballo #?"
+- **Causa**: Límite de URL en query de entries (420 IDs)
+- **Solución**: Batching en consulta de resultEntryIds
+
+**Resolución Problema 2 (Enero 2026)**:
+- **Problema**: Solo se mostraban 105-115 carreras de 139 totales
+- **Causa**: Límite de URL en TODAS las queries principales (race_results, predictions, scores, entries)
+- **Solución**: Batching implementado en TODAS las consultas que usan `.in()` con arrays grandes
+
+---
 **Causa**: Límite de Supabase en queries `.in()` con 420 IDs
 **Solución**: Implementar batching de consultas (100 IDs por lote)
 

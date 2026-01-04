@@ -68,12 +68,24 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
 
   let raceResults: any[] = [];
   if (allRaceIds.length > 0) {
-    const { data: fetchedResults } = await supabase
-      .from('race_results')
-      .select('*')
-      .in('race_id', allRaceIds);
+    // Consultar en lotes para evitar límites de URL
+    const BATCH_SIZE = 100;
+    const resultsBatches: any[] = [];
+    
+    for (let i = 0; i < allRaceIds.length; i += BATCH_SIZE) {
+      const batch = allRaceIds.slice(i, i + BATCH_SIZE);
+      const { data: batchData } = await supabase
+        .from('race_results')
+        .select('*')
+        .in('race_id', batch);
+      
+      if (batchData) {
+        resultsBatches.push(...batchData);
+      }
+    }
+    
     // Normalizar resultados inmediatamente después de obtenerlos
-    raceResults = (fetchedResults || []).map((result: any) => normalizeRaceResult(result));
+    raceResults = resultsBatches.map((result: any) => normalizeRaceResult(result));
   }
 
   const raceIdsWithResults = new Set(
@@ -91,47 +103,85 @@ export default async function PublicPlayerPredictionsPage({ params }: PageProps)
   let entries: any[] = [];
 
   if (publishedRaceIds.length > 0) {
-    // Buscar predicciones por membership_id primero
-    const { data: fetchedPredictions } = await supabase
-      .from('predictions')
-      .select('id, race_id, winner_pick, exacta_pick, trifecta_pick, created_at')
-      .eq('membership_id', membership.id)
-      .in('race_id', publishedRaceIds);
-    predictions = fetchedPredictions || [];
+    const BATCH_SIZE = 100;
+
+    // Buscar predicciones por membership_id primero (en lotes)
+    const predictionsBatches: any[] = [];
+    for (let i = 0; i < publishedRaceIds.length; i += BATCH_SIZE) {
+      const batch = publishedRaceIds.slice(i, i + BATCH_SIZE);
+      const { data: batchData } = await supabase
+        .from('predictions')
+        .select('id, race_id, winner_pick, exacta_pick, trifecta_pick, created_at')
+        .eq('membership_id', membership.id)
+        .in('race_id', batch);
+      if (batchData) {
+        predictionsBatches.push(...batchData);
+      }
+    }
+    predictions = predictionsBatches;
 
     // Si no hay predicciones y el miembro tiene user_id, buscar por user_id como fallback
     if (predictions.length === 0 && membership.user_id) {
-      const { data: fallbackPredictions } = await supabase
-        .from('predictions')
-        .select('id, race_id, winner_pick, exacta_pick, trifecta_pick, created_at')
-        .eq('user_id', membership.user_id)
-        .in('race_id', publishedRaceIds);
-      predictions = fallbackPredictions || [];
+      const fallbackPredictionsBatches: any[] = [];
+      for (let i = 0; i < publishedRaceIds.length; i += BATCH_SIZE) {
+        const batch = publishedRaceIds.slice(i, i + BATCH_SIZE);
+        const { data: batchData } = await supabase
+          .from('predictions')
+          .select('id, race_id, winner_pick, exacta_pick, trifecta_pick, created_at')
+          .eq('user_id', membership.user_id)
+          .in('race_id', batch);
+        if (batchData) {
+          fallbackPredictionsBatches.push(...batchData);
+        }
+      }
+      predictions = fallbackPredictionsBatches;
     }
 
-    // Buscar scores por membership_id primero
-    const { data: fetchedScores } = await supabase
-      .from('scores')
-      .select('id, race_id, points_total, breakdown')
-      .eq('membership_id', membership.id)
-      .in('race_id', publishedRaceIds);
-    scores = fetchedScores || [];
+    // Buscar scores por membership_id primero (en lotes)
+    const scoresBatches: any[] = [];
+    for (let i = 0; i < publishedRaceIds.length; i += BATCH_SIZE) {
+      const batch = publishedRaceIds.slice(i, i + BATCH_SIZE);
+      const { data: batchData } = await supabase
+        .from('scores')
+        .select('id, race_id, points_total, breakdown')
+        .eq('membership_id', membership.id)
+        .in('race_id', batch);
+      if (batchData) {
+        scoresBatches.push(...batchData);
+      }
+    }
+    scores = scoresBatches;
 
     // Si no hay scores y el miembro tiene user_id, buscar por user_id como fallback
     if (scores.length === 0 && membership.user_id) {
-      const { data: fallbackScores } = await supabase
-        .from('scores')
-        .select('id, race_id, points_total, breakdown')
-        .eq('user_id', membership.user_id)
-        .in('race_id', publishedRaceIds);
-      scores = fallbackScores || [];
+      const fallbackScoresBatches: any[] = [];
+      for (let i = 0; i < publishedRaceIds.length; i += BATCH_SIZE) {
+        const batch = publishedRaceIds.slice(i, i + BATCH_SIZE);
+        const { data: batchData } = await supabase
+          .from('scores')
+          .select('id, race_id, points_total, breakdown')
+          .eq('user_id', membership.user_id)
+          .in('race_id', batch);
+        if (batchData) {
+          fallbackScoresBatches.push(...batchData);
+        }
+      }
+      scores = fallbackScoresBatches;
     }
 
-    const { data: fetchedEntries } = await supabase
-      .from('race_entries')
-      .select('id, race_id, program_number, horse_name:label')
-      .in('race_id', publishedRaceIds);
-    entries = fetchedEntries || [];
+    // Buscar entries (en lotes)
+    const entriesBatches: any[] = [];
+    for (let i = 0; i < publishedRaceIds.length; i += BATCH_SIZE) {
+      const batch = publishedRaceIds.slice(i, i + BATCH_SIZE);
+      const { data: batchData } = await supabase
+        .from('race_entries')
+        .select('id, race_id, program_number, horse_name:label')
+        .in('race_id', batch);
+      if (batchData) {
+        entriesBatches.push(...batchData);
+      }
+    }
+    entries = entriesBatches;
   }
 
   const predictionEntryIds = Array.from(
