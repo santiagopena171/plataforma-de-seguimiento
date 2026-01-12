@@ -2,7 +2,8 @@ export async function calculateScores(
   supabaseClient: any,
   pencaId: string,
   raceId: string,
-  officialOrder: string[]
+  officialOrder: string[],
+  firstPlaceTie: boolean = false
 ) {
   const { data: ruleset } = await supabaseClient
     .from('rulesets')
@@ -57,9 +58,15 @@ export async function calculateScores(
     const breakdown: any = {}
 
     if (modalities.includes('winner') && prediction.winner_pick) {
-      if (prediction.winner_pick === officialOrder[0]) {
+      // Cuando hay empate en primer lugar, tanto officialOrder[0] como [1] son ganadores
+      const isWinner = firstPlaceTie 
+        ? (prediction.winner_pick === officialOrder[0] || prediction.winner_pick === officialOrder[1])
+        : (prediction.winner_pick === officialOrder[0]);
+
+      if (isWinner) {
+        // Si hay empate, ambos ganadores obtienen puntos de primer lugar
         // Check if this is an exclusive winner (only 1 person picked it)
-        const isExclusiveWinner = winnerCounts[officialOrder[0]] === 1
+        const isExclusiveWinner = winnerCounts[prediction.winner_pick] === 1
         const points = isExclusiveWinner ? 25 : pointsTop3.first
 
         breakdown.winner = points
@@ -71,30 +78,42 @@ export async function calculateScores(
 
     if (modalities.includes('exacta') && prediction.exacta_pick) {
       const exactaPick = prediction.exacta_pick
-      if (
-        exactaPick.length === 2 &&
-        exactaPick[0] === officialOrder[0] &&
-        exactaPick[1] === officialOrder[1]
-      ) {
-        breakdown.exacta = pointsTop3.first + pointsTop3.second
-        totalPoints += pointsTop3.first + pointsTop3.second
-      } else {
+      
+      // Con empate, no se puede acertar exacta tradicional
+      if (firstPlaceTie) {
         breakdown.exacta = 0
+      } else {
+        if (
+          exactaPick.length === 2 &&
+          exactaPick[0] === officialOrder[0] &&
+          exactaPick[1] === officialOrder[1]
+        ) {
+          breakdown.exacta = pointsTop3.first + pointsTop3.second
+          totalPoints += pointsTop3.first + pointsTop3.second
+        } else {
+          breakdown.exacta = 0
+        }
       }
     }
 
     if (modalities.includes('trifecta') && prediction.trifecta_pick) {
       const trifectaPick = prediction.trifecta_pick
-      if (
-        trifectaPick.length === 3 &&
-        trifectaPick[0] === officialOrder[0] &&
-        trifectaPick[1] === officialOrder[1] &&
-        trifectaPick[2] === officialOrder[2]
-      ) {
-        breakdown.trifecta = pointsTop3.first + pointsTop3.second + pointsTop3.third
-        totalPoints += pointsTop3.first + pointsTop3.second + pointsTop3.third
-      } else {
+      
+      // Con empate, no se puede acertar trifecta tradicional
+      if (firstPlaceTie) {
         breakdown.trifecta = 0
+      } else {
+        if (
+          trifectaPick.length === 3 &&
+          trifectaPick[0] === officialOrder[0] &&
+          trifectaPick[1] === officialOrder[1] &&
+          trifectaPick[2] === officialOrder[2]
+        ) {
+          breakdown.trifecta = pointsTop3.first + pointsTop3.second + pointsTop3.third
+          totalPoints += pointsTop3.first + pointsTop3.second + pointsTop3.third
+        } else {
+          breakdown.trifecta = 0
+        }
       }
     }
 
@@ -107,24 +126,46 @@ export async function calculateScores(
       ].filter((p: any, i: number, arr: any[]) => p && arr.indexOf(p) === i)
 
       for (const pick of picks) {
-        if (pick === officialOrder[0]) {
-          // Check if this is an exclusive winner (only 1 person picked it in place mode)
-          const isExclusiveWinner = placeWinnerCounts[officialOrder[0]] === 1
-          const points = isExclusiveWinner ? 25 : pointsTop3.first
-
-          breakdown.place.push(points)
-          totalPoints += points
-        } else if (pick === officialOrder[1]) {
-          breakdown.place.push(pointsTop3.second)
-          totalPoints += pointsTop3.second
-        } else if (pick === officialOrder[2]) {
-          breakdown.place.push(pointsTop3.third)
-          totalPoints += pointsTop3.third
-        } else if (officialOrder[3] && pick === officialOrder[3]) {
-          breakdown.place.push(pointsTop3.fourth || 0)
-          totalPoints += pointsTop3.fourth || 0
+        if (firstPlaceTie) {
+          // Con empate: posiciones 0 y 1 reciben puntos de primero, posición 2 es tercero, posición 3 es cuarto
+          if (pick === officialOrder[0] || pick === officialOrder[1]) {
+            // Ambos son ganadores
+            const isExclusiveWinner = placeWinnerCounts[pick] === 1
+            const points = isExclusiveWinner ? 25 : pointsTop3.first
+            breakdown.place.push(points)
+            totalPoints += points
+          } else if (pick === officialOrder[2]) {
+            // Este es el tercero real (no hay segundo)
+            breakdown.place.push(pointsTop3.third)
+            totalPoints += pointsTop3.third
+          } else if (officialOrder[3] && pick === officialOrder[3]) {
+            // Este es el cuarto
+            breakdown.place.push(pointsTop3.fourth || 0)
+            totalPoints += pointsTop3.fourth || 0
+          } else {
+            breakdown.place.push(0)
+          }
         } else {
-          breakdown.place.push(0)
+          // Sin empate: lógica normal
+          if (pick === officialOrder[0]) {
+            // Check if this is an exclusive winner (only 1 person picked it in place mode)
+            const isExclusiveWinner = placeWinnerCounts[officialOrder[0]] === 1
+            const points = isExclusiveWinner ? 25 : pointsTop3.first
+
+            breakdown.place.push(points)
+            totalPoints += points
+          } else if (pick === officialOrder[1]) {
+            breakdown.place.push(pointsTop3.second)
+            totalPoints += pointsTop3.second
+          } else if (pick === officialOrder[2]) {
+            breakdown.place.push(pointsTop3.third)
+            totalPoints += pointsTop3.third
+          } else if (officialOrder[3] && pick === officialOrder[3]) {
+            breakdown.place.push(pointsTop3.fourth || 0)
+            totalPoints += pointsTop3.fourth || 0
+          } else {
+            breakdown.place.push(0)
+          }
         }
       }
     }

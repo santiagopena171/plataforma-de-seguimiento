@@ -243,6 +243,7 @@ export interface Database {
         Row: {
           race_id: string
           official_order: Json
+          first_place_tie: boolean
           notes: string | null
           published_at: string
           published_by: string
@@ -252,6 +253,7 @@ export interface Database {
         Insert: {
           race_id: string
           official_order: Json
+          first_place_tie?: boolean
           notes?: string | null
           published_at?: string
           published_by: string
@@ -261,6 +263,7 @@ export interface Database {
         Update: {
           race_id?: string
           official_order?: Json
+          first_place_tie?: boolean
           notes?: string | null
           published_at?: string
           published_by?: string

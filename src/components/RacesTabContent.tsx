@@ -27,6 +27,7 @@ interface RaceResult {
   id: string;
   race_id: string;
   official_order: string[];
+  first_place_tie?: boolean;
 }
 
 interface RacesTabContentProps {
@@ -152,13 +153,35 @@ export default function RacesTabContent({
                           {/* Resultado Oficial */}
                           {raceResult && raceResult.official_order && raceResult.official_order.length > 0 && (
                             <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                              <p className="text-sm font-bold text-yellow-900 mb-2">🏆 Resultado Oficial:</p>
+                              <p className="text-sm font-bold text-yellow-900 mb-2">
+                                🏆 Resultado Oficial:
+                                {raceResult.first_place_tie && (
+                                  <span className="ml-2 text-xs bg-yellow-200 text-yellow-900 px-2 py-0.5 rounded">
+                                    Empate 1°
+                                  </span>
+                                )}
+                              </p>
                               <div className="space-y-1">
                                 {raceResult.official_order.slice(0, 3).map((entryId: string, index: number) => {
                                   const entry = race.race_entries?.find((e: any) => e.id === entryId);
+                                  const isTie = raceResult.first_place_tie;
+                                  
+                                  let position = index + 1;
+                                  let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+                                  
+                                  if (isTie) {
+                                    if (index === 0 || index === 1) {
+                                      position = 1;
+                                      medal = '🥇';
+                                    } else if (index === 2) {
+                                      position = 3;
+                                      medal = '🥉';
+                                    }
+                                  }
+                                  
                                   return entry ? (
                                     <p key={entryId} className="text-sm text-yellow-900">
-                                      {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} {index + 1}°: <span className="font-bold">Caballo #{entry.program_number}</span>
+                                      {medal} {position}°: <span className="font-bold">Caballo #{entry.program_number}</span>
                                     </p>
                                   ) : null;
                                 })}

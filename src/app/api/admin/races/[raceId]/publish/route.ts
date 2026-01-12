@@ -42,7 +42,7 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { positions, raceId, pencaId } = body;
+    const { positions, raceId, pencaId, firstPlaceTie = false } = body;
 
     // Obtener la carrera con su penca y ruleset activo
     const { data: race, error: raceError } = await adminClient
@@ -68,22 +68,23 @@ export async function POST(
       return NextResponse.json({ error: 'No hay reglas activas' }, { status: 400 });
     }
 
-    // Encontrar los entries que terminaron en los primeros 3 lugares
+    // Encontrar los entries que terminaron en los primeros lugares
+    // Si hay empate en 1er lugar, las posiciones 1 y 2 son ambas ganadoras
     const firstPlace = Object.entries(positions).find(([, pos]) => pos === 1)?.[0];
     const secondPlace = Object.entries(positions).find(([, pos]) => pos === 2)?.[0];
     const thirdPlace = Object.entries(positions).find(([, pos]) => pos === 3)?.[0];
+    const fourthPlace = Object.entries(positions).find(([, pos]) => pos === 4)?.[0];
 
     if (!firstPlace || !secondPlace || !thirdPlace) {
       return NextResponse.json(
-        { error: 'Faltan los primeros 3 lugares' },
+        { error: firstPlaceTie ? 'Faltan los lugares requeridos (dos primeros en empate y tercero)' : 'Faltan los primeros 3 lugares' },
         { status: 400 }
       );
     }
-    const fourthPlace = Object.entries(positions).find(([, pos]) => pos === 4)?.[0];
 
-    if (!firstPlace || !secondPlace || !thirdPlace || !fourthPlace) {
+    if (!fourthPlace) {
       return NextResponse.json(
-        { error: 'Faltan los primeros 4 lugares' },
+        { error: 'Falta el 4to lugar' },
         { status: 400 }
       );
     }
@@ -94,6 +95,7 @@ export async function POST(
       .upsert({
         race_id: raceId,
         official_order: [firstPlace, secondPlace, thirdPlace, fourthPlace],
+        first_place_tie: firstPlaceTie,
         published_at: new Date().toISOString(),
         published_by: session.user.id,
       }, {
@@ -124,7 +126,7 @@ export async function POST(
       const helper = await import('../../../../../../lib/calculateScores');
       // helper exports default and named; prefer named
       const calculateScores = helper.calculateScores || helper.default;
-      await calculateScores(adminClient, race.penca_id, raceId, officialOrder);
+      await calculateScores(adminClient, race.penca_id, raceId, officialOrder, firstPlaceTie);
     } catch (err) {
       console.error('Error calculating scores with helper:', err);
       return NextResponse.json({ error: 'Error al calcular puntos' }, { status: 500 });

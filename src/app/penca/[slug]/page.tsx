@@ -368,13 +368,37 @@ export default async function PencaPage({ params }: PencaPageProps) {
 
                           {/* Right: Resultado Publicado */}
                           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                            <p className="text-sm font-semibold text-yellow-900 mb-3">🏆 Resultado Publicado</p>
+                            <p className="text-sm font-semibold text-yellow-900 mb-3">
+                              🏆 Resultado Publicado
+                              {resultsMap.get(race.id)?.first_place_tie && (
+                                <span className="ml-2 text-xs bg-yellow-200 text-yellow-900 px-2 py-0.5 rounded">
+                                  Empate 1°
+                                </span>
+                              )}
+                            </p>
                             <div className="space-y-1 text-sm">
                               {resultsMap.get(race.id)?.official_order?.slice(0, 3).map((entryId: string, index: number) => {
                                 const entry = race.race_entries?.find((e: any) => e.id === entryId);
+                                const result = resultsMap.get(race.id);
+                                const isTie = result?.first_place_tie;
+                                
+                                // Con empate: posiciones 0 y 1 son 1°, posición 2 es 3°
+                                let position = index + 1;
+                                let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+                                
+                                if (isTie) {
+                                  if (index === 0 || index === 1) {
+                                    position = 1;
+                                    medal = '🥇';
+                                  } else if (index === 2) {
+                                    position = 3;
+                                    medal = '🥉';
+                                  }
+                                }
+                                
                                 return entry ? (
                                   <p key={entryId} className="text-yellow-900">
-                                    {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'} {index + 1}°: <span className="font-bold">#{entry.program_number} {entry.horse_name}</span>
+                                    {medal} {position}°: <span className="font-bold">#{entry.program_number} {entry.horse_name}</span>
                                   </p>
                                 ) : null;
                               })}
