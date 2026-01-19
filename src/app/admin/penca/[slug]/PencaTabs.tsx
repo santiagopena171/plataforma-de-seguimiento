@@ -124,6 +124,7 @@ export default function PencaTabs({ pencaSlug, pencaId, races, raceDays, members
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [extractingRaces, setExtractingRaces] = useState<string | null>(null);
+  const [extractingDaily, setExtractingDaily] = useState<string | null>(null);
 
   // Filtrar solo miembros no-admin (jugadores reales)
   const actualMembers = memberships?.filter(m => m.role !== 'admin') || [];
@@ -455,6 +456,174 @@ export default function PencaTabs({ pencaSlug, pencaId, races, raceDays, members
       alert(`Error al extraer el resumen de carreras: ${errorMessage}`);
     } finally {
       setExtractingRaces(null);
+    }
+  };
+
+  const handleExtractDaily = async (dayId: string) => {
+    try {
+      setExtractingDaily(dayId);
+
+      // Fetch daily data
+      const response = await fetch(`/api/admin/pencas/${pencaSlug}/race-days/${dayId}/extract-daily`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        throw new Error(errorData.error || 'Error al obtener el resumen diario');
+      }
+
+      const data = await response.json();
+      console.log('Daily data received:', data);
+
+      // Verificar si hay datos para mostrar
+      if (!data.participants || data.participants.length === 0) {
+        alert('⚠️ No hay participantes con predicciones en este día.');
+        setExtractingDaily(null);
+        return;
+      }
+
+      if (!data.races || data.races.length === 0) {
+        alert('⚠️ No hay carreras en este día.');
+        setExtractingDaily(null);
+        return;
+      }
+
+      // Create a temporary div to render the daily summary
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.width = 'auto';
+      tempDiv.style.padding = '30px';
+      tempDiv.style.backgroundColor = 'white';
+      tempDiv.style.fontFamily = 'Arial, sans-serif';
+
+      // Build the HTML content
+      let html = `
+        <div style="text-align: center; margin-bottom: 25px;">
+          <h1 style="font-size: 28px; font-weight: bold; color: #1f2937; margin-bottom: 8px;">
+            ${data.pencaName}
+          </h1>
+          <h2 style="font-size: 20px; font-weight: 600; color: #4b5563; margin-bottom: 5px;">
+            ${data.dayName} - Resumen Diario
+          </h2>
+          ${data.dayDate ? `
+            <p style="font-size: 14px; color: #6b7280;">
+              ${new Date(data.dayDate).toLocaleDateString('es-UY', { dateStyle: 'long' })}
+            </p>
+          ` : ''}
+        </div>
+        <div style="border-top: 2px solid #4f46e5; margin-bottom: 20px;"></div>
+      `;
+
+      // Calcular ancho dinámico basado en número de carreras
+      const cellWidth = 50; // Más angosto porque ahora hay 2 columnas por carrera
+      const nameWidth = 150;
+      const tableWidth = nameWidth + (data.races.length * cellWidth * 2); // x2 porque son 2 columnas (predicción + puntos)
+
+      html += `
+        <table style="width: ${tableWidth}px; border-collapse: collapse; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <thead>
+            <tr style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">
+              <th style="padding: 12px; text-align: left; color: white; font-weight: bold; font-size: 14px; border: 1px solid #4338ca; width: ${nameWidth}px;">
+                NOMBRE
+              </th>
+      `;
+
+      // Headers de carreras (número de carrera)
+      data.races.forEach((race: any) => {
+        html += `
+          <th colspan="2" style="padding: 12px; text-align: center; color: white; font-weight: bold; font-size: 13px; border: 1px solid #4338ca; width: ${cellWidth * 2}px;">
+            ${race.seq}
+          </th>
+        `;
+      });
+
+      html += `
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      // Filas de participantes
+      data.participants.forEach((participant: any, participantIndex: number) => {
+        const rowBg = participantIndex % 2 === 0 ? '#ffffff' : '#f3f4f6';
+        
+        html += `
+          <tr style="background-color: ${rowBg};">
+            <td style="padding: 10px 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #1f2937; font-size: 14px;">
+              ${participant.name}
+            </td>
+        `;
+
+        // Para cada carrera, mostrar predicción (azul) y puntos acumulados (rojo)
+        participant.raceData.forEach((raceData: any, raceIndex: number) => {
+          const prediction = raceData.prediction !== null ? raceData.prediction : '-';
+          const points = raceData.accumulatedPoints;
+
+          // Celda azul para predicción
+          html += `
+            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center; background-color: #3b82f6; color: white; font-weight: bold; font-size: 13px; width: ${cellWidth}px;">
+              ${prediction}
+            </td>
+          `;
+
+          // Celda blanca para puntos acumulados (en rojo)
+          html += `
+            <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center; background-color: white; color: #dc2626; font-weight: bold; font-size: 13px; width: ${cellWidth}px;">
+              ${points}
+            </td>
+          `;
+        });
+
+        html += `
+          </tr>
+        `;
+      });
+
+      html += `
+          </tbody>
+        </table>
+        
+        <div style="margin-top: 20px; padding: 10px; text-align: center; font-size: 12px; color: #6b7280;">
+          <p style="margin: 0;">
+            <span style="display: inline-block; width: 15px; height: 15px; background-color: #3b82f6; margin-right: 5px; vertical-align: middle; border: 1px solid #2563eb;"></span>
+            Predicción
+            <span style="display: inline-block; width: 15px; height: 15px; background-color: white; margin-left: 15px; margin-right: 5px; vertical-align: middle; border: 1px solid #e5e7eb;"></span>
+            <span style="color: #dc2626; font-weight: bold;">Puntos Acumulados</span>
+          </p>
+        </div>
+      `;
+
+      tempDiv.innerHTML = html;
+      document.body.appendChild(tempDiv);
+
+      // Generate image using html2canvas
+      const canvas = await html2canvas(tempDiv, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+        useCORS: true,
+      });
+
+      document.body.removeChild(tempDiv);
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          const dayName = data.dayName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+          link.download = `resumen_diario_${dayName}_${Date.now()}.jpg`;
+          link.href = url;
+          link.click();
+          URL.revokeObjectURL(url);
+        }
+      }, 'image/jpeg', 0.95);
+    } catch (err) {
+      console.error('Error completo:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      alert(`Error al extraer el resumen diario: ${errorMessage}`);
+    } finally {
+      setExtractingDaily(null);
     }
   };
 
@@ -1074,6 +1243,13 @@ export default function PencaTabs({ pencaSlug, pencaId, races, raceDays, members
                             className="text-sm px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                           >
                             {extractingRaces === selectedDay.id ? 'Generando...' : '📊 Extraer Carreras'}
+                          </button>
+                          <button
+                            onClick={() => handleExtractDaily(selectedDay.id)}
+                            disabled={extractingDaily === selectedDay.id}
+                            className="text-sm px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
+                          >
+                            {extractingDaily === selectedDay.id ? 'Generando...' : '📋 Extraer (Diaria)'}
                           </button>
                           <Link
                             href={`/admin/penca/${pencaSlug}/race/new?dayId=${selectedDay.id}`}
