@@ -139,7 +139,7 @@ function parseEnv(filePath) {
       const winnerPicks = predictions?.filter(p => p.winner_pick === winner).length || 0;
       console.log(`\n🎯 Análisis del ganador: ${winner}`);
       console.log(`   Personas que lo eligieron como ganador: ${winnerPicks}`);
-      console.log(`   ${winnerPicks === 1 ? '✨ GANADOR EXCLUSIVO (25 puntos)' : `⚡ Ganador compartido (${ruleset.points_top3.first} puntos)`}`);
+      console.log(`   ${winnerPicks === 1 ? `✨ GANADOR EXCLUSIVO (${ruleset.exclusive_winner_points || 25} puntos)` : `⚡ Ganador compartido (${ruleset.points_top3.first} puntos)`}`);
 
       // Contar cuántas personas lo eligieron en cualquier posición (para place/top3)
       let placePicks = 0;
@@ -157,7 +157,7 @@ function parseEnv(filePath) {
         }
       }
       console.log(`   Personas que lo incluyeron en alguna pick (place/top3): ${placePicks}`);
-      console.log(`   ${placePicks === 1 ? '✨ GANADOR EXCLUSIVO EN PLACE (25 puntos)' : `⚡ Ganador compartido en place (${ruleset.points_top3.first} puntos)`}`);
+      console.log(`   ${placePicks === 1 ? `✨ GANADOR EXCLUSIVO EN PLACE (${ruleset.exclusive_winner_points || 25} puntos)` : `⚡ Ganador compartido en place (${ruleset.points_top3.first} puntos)`}`);
     }
 
     // 7. Recalcular manualmente algunos scores para verificar
@@ -199,7 +199,7 @@ function parseEnv(filePath) {
         if (ruleset.modalities_enabled.includes('winner') && pred.winner_pick) {
           if (pred.winner_pick === race.official_result[0]) {
             const isExclusive = winnerCounts[race.official_result[0]] === 1;
-            const points = isExclusive ? 25 : ruleset.points_top3.first;
+            const points = isExclusive ? (ruleset.exclusive_winner_points || 25) : ruleset.points_top3.first;
             breakdown.winner = points;
             calculatedPoints += points;
             console.log(`    ✓ Winner: ${points} pts ${isExclusive ? '(EXCLUSIVO)' : ''}`);
@@ -223,7 +223,7 @@ function parseEnv(filePath) {
           for (const pick of picks) {
             if (pick === race.official_result[0]) {
               const isExclusive = placeWinnerCounts[race.official_result[0]] === 1;
-              const points = isExclusive ? 25 : ruleset.points_top3.first;
+              const points = isExclusive ? (ruleset.exclusive_winner_points || 25) : ruleset.points_top3.first;
               breakdown.place.push(points);
               calculatedPoints += points;
               console.log(`      ${pick}: ${points} pts (1er lugar) ${isExclusive ? '(EXCLUSIVO)' : ''}`);

@@ -157,6 +157,14 @@ export default async function PredictRacePage({ params }: PredictPageProps) {
                 {(ruleset.points_top3 as any).fourth !== undefined && (
                   <p>4° Puesto: <strong>{(ruleset.points_top3 as any).fourth} puntos</strong></p>
                 )}
+                {ruleset.exclusive_winner_points && ruleset.exclusive_winner_points !== (ruleset.points_top3 as any).first && (
+                  <p className="text-amber-700 font-semibold mt-2">
+                    ✨ Ganador Exclusivo: <strong>{ruleset.exclusive_winner_points} puntos</strong>
+                    <span className="block text-xs font-normal mt-1">
+                      (Cuando solo tú aciertas el ganador)
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
 

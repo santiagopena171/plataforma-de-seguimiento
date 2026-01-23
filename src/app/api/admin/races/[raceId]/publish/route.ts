@@ -42,7 +42,7 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const { positions, raceId, pencaId, firstPlaceTie = false } = body;
+    const { positions, raceId, pencaId, firstPlaceTie = false, bonusWinnerPoints = 0 } = body;
 
     // Obtener la carrera con su penca y ruleset activo
     const { data: race, error: raceError } = await adminClient
@@ -96,6 +96,7 @@ export async function POST(
         race_id: raceId,
         official_order: [firstPlace, secondPlace, thirdPlace, fourthPlace],
         first_place_tie: firstPlaceTie,
+        bonus_winner_points: bonusWinnerPoints,
         published_at: new Date().toISOString(),
         published_by: session.user.id,
       }, {
@@ -126,7 +127,7 @@ export async function POST(
       const helper = await import('../../../../../../lib/calculateScores');
       // helper exports default and named; prefer named
       const calculateScores = helper.calculateScores || helper.default;
-      await calculateScores(adminClient, race.penca_id, raceId, officialOrder, firstPlaceTie);
+      await calculateScores(adminClient, race.penca_id, raceId, officialOrder, firstPlaceTie, bonusWinnerPoints);
     } catch (err) {
       console.error('Error calculating scores with helper:', err);
       return NextResponse.json({ error: 'Error al calcular puntos' }, { status: 500 });

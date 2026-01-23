@@ -43,14 +43,15 @@ BEGIN
   (test_penca_id, admin_user_id);
 
   -- Crear ruleset para la penca
-  INSERT INTO rulesets (id, penca_id, version, points_top3, modalities_enabled, tiebreakers_order, lock_minutes_before_start, sealed_predictions_until_close, effective_from_race_seq, is_active) VALUES
+  INSERT INTO rulesets (id, penca_id, version, points_top3, modalities_enabled, tiebreakers_order, lock_minutes_before_start, sealed_predictions_until_close, effective_from_race_seq, exclusive_winner_points, is_active) VALUES
   (test_ruleset_id, test_penca_id, 1, 
   '{"first": 5, "second": 3, "third": 1}'::jsonb, 
   '["winner", "exacta"]'::jsonb, 
   '[]'::jsonb, 
   15, 
   true, 
-  1, 
+  1,
+  25,
   true);
 
   -- Actualizar penca con ruleset activo

@@ -19,6 +19,7 @@ export default function RulesForm({ pencaId, slug, activeRuleset, allRulesets }:
     points_second: activeRuleset?.points_top3?.second || 3,
     points_third: activeRuleset?.points_top3?.third || 1,
     points_fourth: activeRuleset?.points_top3?.fourth || 0,
+    exclusive_winner_points: activeRuleset?.exclusive_winner_points || 25,
     modalities: activeRuleset?.modalities_enabled || ['winner'],
     lock_minutes: activeRuleset?.lock_minutes_before_start || 15,
     sealed: activeRuleset?.sealed_predictions_until_close !== false,
@@ -64,6 +65,7 @@ export default function RulesForm({ pencaId, slug, activeRuleset, allRulesets }:
             third: form.points_third,
             fourth: form.points_fourth,
           },
+          exclusive_winner_points: form.exclusive_winner_points,
           modalities_enabled: form.modalities,
           lock_minutes_before_start: form.lock_minutes,
           sealed_predictions_until_close: form.sealed,
@@ -168,6 +170,27 @@ export default function RulesForm({ pencaId, slug, activeRuleset, allRulesets }:
                 onChange={(e) => setForm({ ...form, points_fourth: parseInt(e.target.value) || 0 })}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
+            </div>
+          </div>
+          
+          <div className="mt-6 border-t border-gray-200 pt-6">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">
+              Bonificación por Exclusiva
+            </h4>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Puntos por ganador exclusivo
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={form.exclusive_winner_points}
+                onChange={(e) => setForm({ ...form, exclusive_winner_points: parseInt(e.target.value) || 0 })}
+                className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+              <p className="text-sm text-gray-500 mt-2">
+                Cuando solo una persona acierta el ganador, recibe estos puntos en lugar de los puntos normales de 1° lugar.
+              </p>
             </div>
           </div>
         </div>

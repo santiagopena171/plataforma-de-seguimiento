@@ -19,6 +19,8 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [firstPlaceTie, setFirstPlaceTie] = useState(false);
+  const [giveBonus, setGiveBonus] = useState(false);
+  const [bonusPoints, setBonusPoints] = useState(0);
 
   // Ordenar caballos por número de programa
   const sortedEntries = [...entries].sort((a, b) => a.program_number - b.program_number);
@@ -95,6 +97,7 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
           raceId: race.id,
           pencaId: race.penca_id,
           firstPlaceTie,
+          bonusWinnerPoints: giveBonus ? bonusPoints : 0,
         }),
       });
 
@@ -164,6 +167,49 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
               Marca esta casilla si dos caballos empataron en el primer puesto. 
               Ambos recibirán la puntuación de primer lugar y no se otorgará puntuación de segundo lugar.
             </p>
+          </div>
+        </label>
+      </div>
+
+      {/* Bonificación Extra */}
+      <div className="border border-amber-200 rounded-lg p-4 bg-amber-50">
+        <label className="flex items-start space-x-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={giveBonus}
+            onChange={(e) => {
+              setGiveBonus(e.target.checked);
+              if (!e.target.checked) {
+                setBonusPoints(0);
+              }
+            }}
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+          />
+          <div className="flex-1">
+            <span className="font-medium text-amber-900">
+              ✨ Otorgar puntos extra al ganador
+            </span>
+            <p className="text-sm text-amber-700 mt-1">
+              Bonus adicional para quien acierte el 1er lugar de esta carrera
+            </p>
+            {giveBonus && (
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-amber-900 mb-2">
+                  Cantidad de puntos extra
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={bonusPoints}
+                  onChange={(e) => setBonusPoints(parseInt(e.target.value) || 0)}
+                  className="w-full max-w-xs rounded-md border border-amber-300 px-3 py-2 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  placeholder="Ej: 5"
+                />
+                <p className="text-xs text-amber-600 mt-1">
+                  Se sumarán {bonusPoints} puntos extra a quien acierte el ganador
+                </p>
+              </div>
+            )}
           </div>
         </label>
       </div>

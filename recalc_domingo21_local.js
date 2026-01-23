@@ -68,7 +68,7 @@ async function calculateAndUpdateScores(pencaId, raceId, officialOrder) {
         
         if (position === 0) {
           const isExclusiveWinner = placeWinnerCounts[officialOrder[0]] === 1;
-          points = isExclusiveWinner ? 25 : pointsTop3.first;
+          points = isExclusiveWinner ? ruleset.exclusive_winner_points : pointsTop3.first;
         } else if (position === 1) {
           points = pointsTop3.second;
         } else if (position === 2) {

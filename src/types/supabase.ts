@@ -89,6 +89,7 @@ export interface Database {
           lock_minutes_before_start: number
           sealed_predictions_until_close: boolean
           effective_from_race_seq: number
+          exclusive_winner_points: number
           is_active: boolean
           created_at: string
           updated_at: string
@@ -103,6 +104,7 @@ export interface Database {
           lock_minutes_before_start?: number
           sealed_predictions_until_close?: boolean
           effective_from_race_seq?: number
+          exclusive_winner_points?: number
           is_active?: boolean
           created_at?: string
           updated_at?: string
@@ -117,6 +119,7 @@ export interface Database {
           lock_minutes_before_start?: number
           sealed_predictions_until_close?: boolean
           effective_from_race_seq?: number
+          exclusive_winner_points?: number
           is_active?: boolean
           created_at?: string
           updated_at?: string
@@ -244,6 +247,7 @@ export interface Database {
           race_id: string
           official_order: Json
           first_place_tie: boolean
+          bonus_winner_points: number
           notes: string | null
           published_at: string
           published_by: string
@@ -254,6 +258,7 @@ export interface Database {
           race_id: string
           official_order: Json
           first_place_tie?: boolean
+          bonus_winner_points?: number
           notes?: string | null
           published_at?: string
           published_by: string
@@ -264,6 +269,7 @@ export interface Database {
           race_id?: string
           official_order?: Json
           first_place_tie?: boolean
+          bonus_winner_points?: number
           notes?: string | null
           published_at?: string
           published_by?: string

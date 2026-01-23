@@ -101,6 +101,7 @@ CREATE TABLE rulesets (
     lock_minutes_before_start INTEGER NOT NULL DEFAULT 15,
     sealed_predictions_until_close BOOLEAN NOT NULL DEFAULT true,
     effective_from_race_seq INTEGER NOT NULL DEFAULT 1,
+    exclusive_winner_points INTEGER NOT NULL DEFAULT 25,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -196,12 +197,20 @@ CREATE INDEX idx_predictions_user_id ON predictions(user_id);
 CREATE TABLE race_results (
     race_id UUID PRIMARY KEY REFERENCES races(id) ON DELETE CASCADE,
     official_order JSONB NOT NULL,
+    first_place_tie BOOLEAN DEFAULT FALSE,
+    bonus_winner_points INTEGER DEFAULT 0,
     notes TEXT,
     published_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     published_by UUID NOT NULL REFERENCES profiles(id) ON DELETE RESTRICT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+COMMENT ON COLUMN race_results.first_place_tie IS 
+'Indica si hay empate en el primer lugar. Si es TRUE, los dos primeros elementos de official_order son los ganadores compartidos y no se otorga puntuación de segundo lugar.';
+
+COMMENT ON COLUMN race_results.bonus_winner_points IS 
+'Puntos extra otorgados al ganador de esta carrera específica. Se suman a los puntos normales que correspondan.';
 
 -- Scores
 CREATE TABLE scores (

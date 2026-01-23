@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
         lock_minutes_before_start: 15,
         sealed_predictions_until_close: true,
         effective_from_race_seq: 1,
+        exclusive_winner_points: 25,
         is_active: true,
       });
 

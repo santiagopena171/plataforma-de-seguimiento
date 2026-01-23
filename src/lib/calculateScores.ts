@@ -3,7 +3,8 @@ export async function calculateScores(
   pencaId: string,
   raceId: string,
   officialOrder: string[],
-  firstPlaceTie: boolean = false
+  firstPlaceTie: boolean = false,
+  bonusWinnerPoints: number = 0
 ) {
   const { data: ruleset } = await supabaseClient
     .from('rulesets')
@@ -67,7 +68,12 @@ export async function calculateScores(
         // Si hay empate, ambos ganadores obtienen puntos de primer lugar
         // Check if this is an exclusive winner (only 1 person picked it)
         const isExclusiveWinner = winnerCounts[prediction.winner_pick] === 1
-        const points = isExclusiveWinner ? 25 : pointsTop3.first
+        let points = isExclusiveWinner ? ruleset.exclusive_winner_points : pointsTop3.first
+        
+        // Agregar bonus si el jugador acertó el ganador real (no empate secundario)
+        if (prediction.winner_pick === officialOrder[0] && bonusWinnerPoints > 0) {
+          points += bonusWinnerPoints
+        }
 
         breakdown.winner = points
         totalPoints += points
@@ -131,7 +137,13 @@ export async function calculateScores(
           if (pick === officialOrder[0] || pick === officialOrder[1]) {
             // Ambos son ganadores
             const isExclusiveWinner = placeWinnerCounts[pick] === 1
-            const points = isExclusiveWinner ? 25 : pointsTop3.first
+            let points = isExclusiveWinner ? ruleset.exclusive_winner_points : pointsTop3.first
+            
+            // Agregar bonus solo al primer lugar real
+            if (pick === officialOrder[0] && bonusWinnerPoints > 0) {
+              points += bonusWinnerPoints
+            }
+            
             breakdown.place.push(points)
             totalPoints += points
           } else if (pick === officialOrder[2]) {
@@ -150,7 +162,12 @@ export async function calculateScores(
           if (pick === officialOrder[0]) {
             // Check if this is an exclusive winner (only 1 person picked it in place mode)
             const isExclusiveWinner = placeWinnerCounts[officialOrder[0]] === 1
-            const points = isExclusiveWinner ? 25 : pointsTop3.first
+            let points = isExclusiveWinner ? ruleset.exclusive_winner_points : pointsTop3.first
+            
+            // Agregar bonus al ganador
+            if (bonusWinnerPoints > 0) {
+              points += bonusWinnerPoints
+            }
 
             breakdown.place.push(points)
             totalPoints += points

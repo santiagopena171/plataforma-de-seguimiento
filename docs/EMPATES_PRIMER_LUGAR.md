@@ -71,6 +71,6 @@ Cuando hay empate:
 
 ## Consideraciones
 
-- **Exclusividad**: El sistema de "ganador exclusivo" (25 puntos) sigue aplicando solo cuando UN jugador acertó
+- **Exclusividad**: El sistema de "ganador exclusivo" sigue aplicando solo cuando UN jugador acertó. El valor de puntos es configurable por penca en `ruleset.exclusive_winner_points` (por defecto 25 puntos)
 - **Retrocompatibilidad**: Las carreras sin empate siguen funcionando normalmente con `first_place_tie: false`
 - **Recálculo**: La función de recálculo de puntos respeta el flag de empate al recalcular scores

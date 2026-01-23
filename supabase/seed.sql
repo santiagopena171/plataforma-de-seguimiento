@@ -41,14 +41,15 @@ INSERT INTO penca_admins (penca_id, user_id) VALUES
 ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001');
 
 -- Create ruleset for the penca
-INSERT INTO rulesets (id, penca_id, version, points_top3, modalities_enabled, tiebreakers_order, lock_minutes_before_start, sealed_predictions_until_close, effective_from_race_seq, is_active) VALUES
+INSERT INTO rulesets (id, penca_id, version, points_top3, modalities_enabled, tiebreakers_order, lock_minutes_before_start, sealed_predictions_until_close, effective_from_race_seq, exclusive_winner_points, is_active) VALUES
 ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 1, 
 '{"first": 5, "second": 3, "third": 1}'::jsonb, 
 '["winner", "exacta"]'::jsonb, 
 '[]'::jsonb, 
 15, 
 true, 
-1, 
+1,
+25,
 true);
 
 -- Update penca with active ruleset

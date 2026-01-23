@@ -48,9 +48,22 @@ async function calculateScoresForRace(raceId, raceSeq) {
 
   console.log(`  Procesando ${predictions.length} predicciones...`);
 
-  // Hardcoded modalities for mensual-maronas (place/top4)
-  const modalities = ['place'];
-  const pointsTop3 = { first: 10, second: 7, third: 5, fourth: 3 };
+  // Get ruleset for the penca
+  const { data: ruleset } = await supabase
+    .from('rulesets')
+    .select('*')
+    .eq('penca_id', race.penca_id)
+    .eq('is_active', true)
+    .single();
+
+  if (!ruleset) {
+    console.log('  ⚠️  No se encontró ruleset activo');
+    return;
+  }
+
+  // Use ruleset values or fallback to hardcoded (for mensual-maronas)
+  const modalities = ruleset.modalities_enabled || ['place'];
+  const pointsTop3 = ruleset.points_top3 || { first: 10, second: 7, third: 5, fourth: 3 };
 
   // Count how many people picked the winner in place mode
   const placeWinnerCounts = {};
@@ -85,7 +98,7 @@ async function calculateScoresForRace(raceId, raceSeq) {
       if (pick === officialOrder[0]) {
         // Check if this is an exclusive winner
         const isExclusiveWinner = placeWinnerCounts[officialOrder[0]] === 1;
-        const points = isExclusiveWinner ? 25 : pointsTop3.first;
+        const points = isExclusiveWinner ? ruleset.exclusive_winner_points : pointsTop3.first;
         breakdown.place.push(points);
         totalPoints += points;
       } else if (pick === officialOrder[1]) {
