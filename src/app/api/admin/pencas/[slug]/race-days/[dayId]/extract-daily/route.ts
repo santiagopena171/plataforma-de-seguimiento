@@ -180,11 +180,14 @@ export async function GET(
     let cumulativeScoresByParticipant = new Map<string, number>();
 
     races.forEach(race => {
+      // Verificar si la carrera tiene resultado publicado
+      const hasResult = race.status === 'result_published';
+      
       // Obtener predicciones de esta carrera
       const racePredictions = (predictions || []).filter(p => p.race_id === race.id);
       
-      // Obtener scores de esta carrera
-      const raceScores = (scores || []).filter(s => s.race_id === race.id);
+      // Obtener scores de esta carrera (solo si tiene resultado)
+      const raceScores = hasResult ? (scores || []).filter(s => s.race_id === race.id) : [];
 
       // Para cada participante, agregar datos de esta carrera
       participantsMap.forEach((participant, membershipId) => {
@@ -193,16 +196,22 @@ export async function GET(
           p => p.membership_id === membershipId || (p.user_id && membershipsByUserId.has(p.user_id) && membershipsByUserId.get(p.user_id)?.id === membershipId)
         );
 
-        // Buscar score de este participante para esta carrera
-        const score = raceScores.find(
-          s => s.membership_id === membershipId || (s.user_id && membershipsByUserId.has(s.user_id) && membershipsByUserId.get(s.user_id)?.id === membershipId)
-        );
+        // Solo buscar score si la carrera tiene resultado publicado
+        let score = null;
+        if (hasResult) {
+          score = raceScores.find(
+            s => s.membership_id === membershipId || (s.user_id && membershipsByUserId.has(s.user_id) && membershipsByUserId.get(s.user_id)?.id === membershipId)
+          );
+        }
 
-        // Actualizar puntos acumulados
-        const currentScore = score?.points_total || 0;
-        const previousCumulative = cumulativeScoresByParticipant.get(membershipId) || 0;
-        const newCumulative = previousCumulative + currentScore;
-        cumulativeScoresByParticipant.set(membershipId, newCumulative);
+        // Actualizar puntos acumulados solo si la carrera tiene resultado
+        let newCumulative = null;
+        if (hasResult) {
+          const currentScore = score?.points_total || 0;
+          const previousCumulative = cumulativeScoresByParticipant.get(membershipId) || 0;
+          newCumulative = previousCumulative + currentScore;
+          cumulativeScoresByParticipant.set(membershipId, newCumulative);
+        }
 
         // Obtener el program_number de la predicción
         let predictionNumber = null;
@@ -214,7 +223,7 @@ export async function GET(
         participant.raceData.push({
           raceId: race.id,
           prediction: predictionNumber,
-          accumulatedPoints: newCumulative,
+          accumulatedPoints: newCumulative, // null si no tiene resultado, número si tiene resultado
         });
       });
     });
@@ -222,8 +231,11 @@ export async function GET(
     // Convertir el mapa a array y ordenar por puntos finales (descendente)
     const participants = Array.from(participantsMap.values())
       .sort((a, b) => {
-        const aFinalPoints = a.raceData[a.raceData.length - 1]?.accumulatedPoints || 0;
-        const bFinalPoints = b.raceData[b.raceData.length - 1]?.accumulatedPoints || 0;
+        // Buscar el último puntaje no-null para ordenar correctamente
+        const aFinalPoints = a.raceData.reverse().find(rd => rd.accumulatedPoints !== null)?.accumulatedPoints || 0;
+        const bFinalPoints = b.raceData.reverse().find(rd => rd.accumulatedPoints !== null)?.accumulatedPoints || 0;
+        a.raceData.reverse(); // restaurar orden original
+        b.raceData.reverse(); // restaurar orden original
         return bFinalPoints - aFinalPoints;
       });
 

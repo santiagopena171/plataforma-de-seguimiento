@@ -566,10 +566,10 @@ export default function PencaTabs({ pencaSlug, pencaId, races, raceDays, members
             </td>
           `;
 
-          // Celda blanca para puntos acumulados (en rojo)
+          // Celda blanca para puntos acumulados (en rojo) - solo si tiene resultado (points no es null)
           html += `
             <td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center; background-color: white; color: #dc2626; font-weight: bold; font-size: 13px; width: ${cellWidth}px;">
-              ${points}
+              ${points !== null ? points : ''}
             </td>
           `;
         });
