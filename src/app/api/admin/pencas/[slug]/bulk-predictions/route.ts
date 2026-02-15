@@ -34,17 +34,65 @@ export async function POST(
       return NextResponse.json({ error: 'Penca not found' }, { status: 404 });
     }
 
+    // FASE 1: Identificar y crear miembros únicos que faltan
+    const uniqueMemberNames = new Set<string>();
+    const memberIdMap = new Map<string, string>(); // memberName -> memberId
+
+    // Recopilar nombres únicos que necesitan ser creados
+    for (const pred of predictions) {
+      const { memberId, memberName } = pred;
+      if (!memberId && memberName) {
+        uniqueMemberNames.add(memberName.trim());
+      }
+    }
+
+    console.log(`\n=== FASE 1: Crear miembros ===`);
+    console.log(`Miembros únicos a crear: ${uniqueMemberNames.size}`);
+
+    let createdCount = 0;
+    for (const memberName of uniqueMemberNames) {
+      console.log(`Creating guest member: ${memberName}`);
+      
+      const { data: newMembership, error: membershipError } = await supabaseAdmin
+        .from('memberships')
+        .insert({
+          penca_id: penca.id,
+          user_id: null, // Guest member
+          guest_name: memberName,
+          role: 'player',
+        })
+        .select()
+        .single();
+
+      if (membershipError) {
+        console.error(`  ✗ Error creating membership:`, membershipError);
+      } else {
+        memberIdMap.set(memberName, newMembership.id);
+        createdCount++;
+        console.log(`  ✓ Created with ID: ${newMembership.id}`);
+      }
+    }
+
+    console.log(`\n=== FASE 2: Asignar predicciones ===`);
+    
     // Process predictions
     const results = {
       success: 0,
       failed: 0,
       errors: [] as string[],
+      created: createdCount,
     };
 
     for (const pred of predictions) {
-      const { memberId, raceId, prediction, memberName, raceSeq } = pred;
+      let { memberId, raceId, prediction, memberName, raceSeq } = pred;
 
       console.log(`Processing: ${memberName} - Race ${raceSeq} - Horse ${prediction}`);
+
+      // Si no hay memberId, buscar en el mapa de miembros recién creados
+      if (!memberId && memberName) {
+        memberId = memberIdMap.get(memberName.trim());
+      }
+
       console.log(`  memberId: ${memberId}, raceId: ${raceId}`);
 
       if (!memberId || !raceId) {
@@ -114,10 +162,10 @@ export async function POST(
       }
     }
 
-    console.log(`\nFinal results: ${results.success} success, ${results.failed} failed`);
+    console.log(`\nFinal results: ${results.success} success, ${results.failed} failed, ${results.created} members created`);
 
     return NextResponse.json({ 
-      message: `Uploaded ${results.success} predictions, ${results.failed} failed`,
+      message: `Uploaded ${results.success} predictions, ${results.failed} failed, ${results.created} members created`,
       results,
     });
   } catch (error) {

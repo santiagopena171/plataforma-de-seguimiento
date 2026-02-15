@@ -158,11 +158,17 @@ export default function BulkPredictionUploadModal({
 
       const result = await res.json();
       
-      if (result.results.failed > 0) {
-        alert(`Subidas: ${result.results.success}\nFallidas: ${result.results.failed}\n\nErrores:\n${result.results.errors.slice(0, 5).join('\n')}`);
-      } else {
-        alert(`✓ ${result.results.success} predicciones cargadas exitosamente`);
+      const messages = [];
+      messages.push(`✓ ${result.results.success} predicciones cargadas exitosamente`);
+      if (result.results.created > 0) {
+        messages.push(`✨ ${result.results.created} nuevo(s) miembro(s) creado(s)`);
       }
+      if (result.results.failed > 0) {
+        messages.push(`⚠️ ${result.results.failed} fallida(s)`);
+        messages.push(`\nErrores:\n${result.results.errors.slice(0, 5).join('\n')}`);
+      }
+      
+      alert(messages.join('\n'));
       
       onSuccess();
       handleClose();
@@ -203,6 +209,7 @@ export default function BulkPredictionUploadModal({
             <ul className="text-sm text-blue-800 space-y-1">
               <li><strong>Primera fila:</strong> Encabezados → "Nombre", "P1", "P2", "P3", ... "P{races.length}"</li>
               <li><strong>Siguientes filas:</strong> Nombre del jugador en columna A, predicciones (números 1-15) en columnas siguientes</li>
+              <li className="text-green-700">✨ <strong>Los miembros que no existan serán creados automáticamente</strong></li>
               <li><strong>Ejemplo:</strong></li>
             </ul>
             <pre className="mt-2 bg-white p-2 rounded text-xs border">
@@ -257,10 +264,10 @@ María     1     4     8
                       });
                       
                       return (
-                        <tr key={idx} className={`border-t ${!membership ? 'bg-yellow-50' : ''}`}>
+                        <tr key={idx} className={`border-t ${!membership ? 'bg-green-50' : ''}`}>
                           <td className="px-3 py-2">
                             {item.memberName}
-                            {!membership && <span className="text-xs text-yellow-700 ml-2">(⚠️ no encontrado)</span>}
+                            {!membership && <span className="text-xs text-green-700 ml-2">(✨ será creado)</span>}
                           </td>
                           {races.map(r => (
                             <td key={r.id} className="px-3 py-2 text-center">
