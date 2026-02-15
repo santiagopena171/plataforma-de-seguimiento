@@ -163,7 +163,6 @@ export default async function PublishResultPage({ params }: PageProps) {
             activeRuleset={activeRuleset}
             existingResult={existingResult}
           />
-          />
         </div>
       </main>
     </div>
