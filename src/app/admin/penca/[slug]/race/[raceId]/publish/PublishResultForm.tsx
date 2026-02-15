@@ -9,18 +9,23 @@ interface PublishResultFormProps {
   entries: any[];
   slug: string;
   activeRuleset: any;
+  existingResult?: any;
 }
 
-export default function PublishResultForm({ race, entries, slug, activeRuleset }: PublishResultFormProps) {
+export default function PublishResultForm({ race, entries, slug, activeRuleset, existingResult }: PublishResultFormProps) {
   const router = useRouter();
 
-  // Estado para los 4 primeros lugares
-  const [topFour, setTopFour] = useState<[string | null, string | null, string | null, string | null]>([null, null, null, null]);
+  // Estado para los 4 primeros lugares - inicializar con resultado existente si existe
+  const initialTopFour: [string | null, string | null, string | null, string | null] = existingResult?.official_order 
+    ? [existingResult.official_order[0] || null, existingResult.official_order[1] || null, existingResult.official_order[2] || null, existingResult.official_order[3] || null]
+    : [null, null, null, null];
+  
+  const [topFour, setTopFour] = useState<[string | null, string | null, string | null, string | null]>(initialTopFour);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [firstPlaceTie, setFirstPlaceTie] = useState(false);
-  const [giveBonus, setGiveBonus] = useState(false);
-  const [bonusPoints, setBonusPoints] = useState(0);
+  const [firstPlaceTie, setFirstPlaceTie] = useState(existingResult?.first_place_tie || false);
+  const [giveBonus, setGiveBonus] = useState((existingResult?.bonus_winner_points || 0) > 0);
+  const [bonusPoints, setBonusPoints] = useState(existingResult?.bonus_winner_points || 0);
 
   // Ordenar caballos por número de programa
   const sortedEntries = [...entries].sort((a, b) => a.program_number - b.program_number);
@@ -103,7 +108,7 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Error al publicar resultado');
+        throw new Error(data.error || `Error al ${existingResult ? 'actualizar' : 'publicar'} resultado`);
       }
 
       // Esperar un momento para que la base de datos se actualice
@@ -349,7 +354,7 @@ export default function PublishResultForm({ race, entries, slug, activeRuleset }
           disabled={loading || topFour.some(id => id === null)}
           className="px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          {loading ? 'Publicando...' : 'Publicar Resultado'}
+          {loading ? (existingResult ? 'Actualizando...' : 'Publicando...') : (existingResult ? 'Actualizar Resultado' : 'Publicar Resultado')}
         </button>
       </div>
     </form>

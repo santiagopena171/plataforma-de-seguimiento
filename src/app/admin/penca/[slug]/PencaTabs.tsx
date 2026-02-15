@@ -1345,13 +1345,21 @@ export default function PencaTabs({ pencaSlug, pencaId, races, raceDays, members
 
                                     {/* Botón para cerrar/abrir predicciones */}
                                     {race.status === 'result_published' ? (
-                                      <button
-                                        onClick={() => handleDownloadResults(race.id)}
-                                        disabled={generatingImage === race.id}
-                                        className="text-sm text-green-600 hover:text-green-800 font-medium disabled:opacity-50"
-                                      >
-                                        {generatingImage === race.id ? 'Generando...' : 'Resultado Publicado'}
-                                      </button>
+                                      <>
+                                        <Link
+                                          href={`/admin/penca/${pencaSlug}/race/${race.id}/publish`}
+                                          className="text-sm text-orange-600 hover:text-orange-800 font-medium"
+                                        >
+                                          Modificar Resultado
+                                        </Link>
+                                        <button
+                                          onClick={() => handleDownloadResults(race.id)}
+                                          disabled={generatingImage === race.id}
+                                          className="text-sm text-green-600 hover:text-green-800 font-medium disabled:opacity-50"
+                                        >
+                                          {generatingImage === race.id ? 'Generando...' : 'Resultado Publicado'}
+                                        </button>
+                                      </>
                                     ) : race.status === 'closed' ? (
                                       <button
                                         onClick={() => handleOpenPredictions(race.id)}
@@ -1382,15 +1390,7 @@ export default function PencaTabs({ pencaSlug, pencaId, races, raceDays, members
                                     )}
 
                                     {/* Botón para publicar resultado */}
-                                    {race.status === 'result_published' ? (
-                                      <button
-                                        onClick={() => handleDownloadResults(race.id)}
-                                        disabled={generatingImage === race.id}
-                                        className="text-sm text-green-600 hover:text-green-800 font-medium disabled:opacity-50"
-                                      >
-                                        {generatingImage === race.id ? 'Generando...' : 'Resultado Publicado'}
-                                      </button>
-                                    ) : (
+                                    {race.status !== 'result_published' && (
                                       <Link
                                         href={`/admin/penca/${pencaSlug}/race/${race.id}/publish`}
                                         className="text-sm text-green-600 hover:text-green-800 font-medium"

@@ -82,9 +82,16 @@ export default async function PublishResultPage({ params }: PageProps) {
     notFound();
   }
 
-  // Verificar si el resultado ya está publicado
+  // Obtener el resultado existente si ya está publicado
+  let existingResult = null;
   if (race.status === 'result_published') {
-    redirect(`/admin/penca/${params.slug}`);
+    const { data: result } = await adminClient
+      .from('race_results')
+      .select('*')
+      .eq('race_id', params.raceId)
+      .single();
+    
+    existingResult = result;
   }
 
   // Obtener el ruleset activo
@@ -114,7 +121,7 @@ export default async function PublishResultPage({ params }: PageProps) {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900">
-              Publicar Resultado - Carrera #{race.seq}
+              {existingResult ? 'Modificar' : 'Publicar'} Resultado - Carrera #{race.seq}
             </h1>
             <div className="mt-2 text-sm text-gray-600">
               <p>{race.venue} • {race.distance_m}m</p>
@@ -123,6 +130,13 @@ export default async function PublishResultPage({ params }: PageProps) {
                 timeStyle: 'short'
               })}</p>
             </div>
+            {existingResult && (
+              <div className="mt-3">
+                <p className="text-sm text-orange-600 font-medium">
+                  ⚠️ Esta carrera ya tiene un resultado publicado. Los cambios recalcularán todos los puntos.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Rules Info */}
@@ -147,6 +161,8 @@ export default async function PublishResultPage({ params }: PageProps) {
             entries={race.race_entries || []}
             slug={params.slug}
             activeRuleset={activeRuleset}
+            existingResult={existingResult}
+          />
           />
         </div>
       </main>

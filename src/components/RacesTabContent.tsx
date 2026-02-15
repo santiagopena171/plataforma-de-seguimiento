@@ -205,13 +205,21 @@ export default function RacesTabContent({
 
                           {/* Botones de acción según estado */}
                           {race.status === 'result_published' ? (
-                            <button
-                              onClick={() => onDownloadResults(race.id)}
-                              disabled={generatingImage === race.id}
-                              className="text-sm text-green-600 hover:text-green-800 font-medium disabled:opacity-50"
-                            >
-                              {generatingImage === race.id ? 'Generando...' : 'Resultado Publicado'}
-                            </button>
+                            <>
+                              <Link
+                                href={`/admin/penca/${pencaSlug}/race/${race.id}/publish`}
+                                className="text-sm text-orange-600 hover:text-orange-800 font-medium"
+                              >
+                                Modificar Resultado
+                              </Link>
+                              <button
+                                onClick={() => onDownloadResults(race.id)}
+                                disabled={generatingImage === race.id}
+                                className="text-sm text-green-600 hover:text-green-800 font-medium disabled:opacity-50"
+                              >
+                                {generatingImage === race.id ? 'Generando...' : 'Resultado Publicado'}
+                              </button>
+                            </>
                           ) : race.status === 'closed' ? (
                             <button
                               onClick={() => onOpenPredictions(race.id)}
