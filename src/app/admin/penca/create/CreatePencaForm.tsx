@@ -9,12 +9,13 @@ interface CreatePencaFormProps {
 
 export default function CreatePencaForm({ userId }: CreatePencaFormProps) {
   const router = useRouter();
-  
+
   const [form, setForm] = useState({
     name: '',
     slug: '',
     description: '',
     status: 'open' as 'open' | 'closed' | 'active',
+    external_results_url: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -79,7 +80,7 @@ export default function CreatePencaForm({ userId }: CreatePencaFormProps) {
       }
 
       const data = await response.json();
-      
+
       // Redirigir a la penca recién creada
       router.push(`/admin/penca/${data.slug}`);
       router.refresh();
@@ -176,6 +177,24 @@ export default function CreatePencaForm({ userId }: CreatePencaFormProps) {
         </select>
         <p className="text-sm text-gray-500 mt-1">
           Puedes cambiar el estado después desde la configuración
+        </p>
+      </div>
+
+      {/* External Results URL */}
+      <div>
+        <label htmlFor="external_results_url" className="block text-sm font-medium text-gray-700 mb-2">
+          Link de Resultados Excel (Opcional)
+        </label>
+        <input
+          type="url"
+          id="external_results_url"
+          value={form.external_results_url}
+          onChange={(e) => setForm({ ...form, external_results_url: e.target.value })}
+          placeholder="https://ejemplo.com/resultados.xls"
+          className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        />
+        <p className="text-sm text-gray-500 mt-1">
+          Enlace al archivo Excel para automatizar la carga de resultados.
         </p>
       </div>
 

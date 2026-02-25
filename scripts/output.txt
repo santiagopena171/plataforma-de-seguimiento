@@ -1,0 +1,4 @@
+[dotenv@17.3.1] injecting env (4) from .env.local -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+Error no controlado: Error: No se encontró la penca con slug: mensual-maronas
+    at main (C:\Users\Santiago Peña\OneDrive\Desktop\plataforma-de-seguimiento-4\scripts\sync-results-excel.js:127:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)

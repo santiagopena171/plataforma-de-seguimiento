@@ -1,0 +1,43 @@
+﻿[dotenv@17.3.1] injecting env (4) from .env.local -- tip: ÔÜÖ´©Å  suppress all logs with { quiet: true }
+Detectada URL de la p├ígina de Maro├▒as. Intentando extraer link de Excel...
+Probando descarga con racetrackId=1...
+  Ô£à Link de Excel descubierto y descargado con ID 1
+Analizando datos del Excel de Maro├▒as...
+Se encontraron 12 carreras en el Excel.
+
+Procesando Carrera #1...
+  Resultado detectado:
+  1ro: Caballo 1 (#1) (Paga: $3.7)
+  2do: Caballo 8 (#8)
+  3ro: Caballo 2 (#2)
+  4to: Caballo 3 (#3)
+  Enviando resultados a la Edge Function...
+  Ô£à Resultados publicados para la Carrera #1
+
+Procesando Carrera #2...
+  Resultado detectado:
+  1ro: Caballo 6 (#6) (Paga: $9.5)
+  2do: Caballo 7 (#7)
+  3ro: Caballo 10 (#10)
+  4to: Caballo 2 (#2)
+  Retirados: Caballo 9 (#9)
+  Enviando resultados a la Edge Function...
+  Ô£à Resultados publicados para la Carrera #2
+
+Procesando Carrera #3...
+  Resultado detectado:
+  1ro: Caballo 10 (#10) (Paga: $3)
+  2do: Caballo 7 (#7)
+  3ro: Caballo 9 (#9)
+  4to: Caballo 4 (#4)
+  Enviando resultados a la Edge Function...
+  Ô£à Resultados publicados para la Carrera #3
+
+Procesando Carrera #4...
+  Resultado detectado:
+  1ro: Caballo 12 (#12) (Paga: $2)
+  2do: Caballo 10 (#10)
+  3ro: Caballo 4 (#4)
+  4to: Caballo 3 (#3)
+  Retirados: Caballo 9 (#9)
+  Enviando resultados a la Edge Function...

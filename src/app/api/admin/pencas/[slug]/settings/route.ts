@@ -29,7 +29,7 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { num_participants } = body;
+    const { num_participants, external_results_url, sync_interval_minutes } = body;
 
     // Validar
     if (!num_participants || num_participants < 3) {
@@ -42,7 +42,11 @@ export async function PATCH(
     // Actualizar la penca usando el slug
     const { error } = await supabase
       .from('pencas')
-      .update({ num_participants })
+      .update({
+        num_participants,
+        external_results_url: external_results_url || null,
+        sync_interval_minutes: sync_interval_minutes || 0
+      })
       .eq('slug', params.slug);
 
     if (error) {

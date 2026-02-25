@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, slug, description, status, created_by } = body;
+    const { name, slug, description, status, created_by, external_results_url } = body;
 
     // Validaciones
     if (!name || !slug) {
@@ -66,6 +66,8 @@ export async function POST(request: NextRequest) {
         description: description || null,
         status: status || 'open',
         created_by,
+        external_results_url: external_results_url || null,
+        num_participants: 30, // Default to 30 members
       })
       .select()
       .single();
@@ -84,12 +86,12 @@ export async function POST(request: NextRequest) {
       .insert({
         penca_id: penca.id,
         version: 1,
-        points_top3: { first: 5, second: 3, third: 1 },
-        modalities_enabled: ['winner'],
+        points_top3: { first: 13, second: 7, third: 4, fourth: 2 },
+        modalities_enabled: ['lugar'],
         lock_minutes_before_start: 15,
         sealed_predictions_until_close: true,
         effective_from_race_seq: 1,
-        exclusive_winner_points: 25,
+        exclusive_winner_points: 30,
         is_active: true,
       });
 

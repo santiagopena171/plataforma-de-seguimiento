@@ -14,7 +14,7 @@ interface PageProps {
 
 export default async function ConfigPage({ params }: PageProps) {
   const supabase = createServerComponentClient({ cookies });
-  
+
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -82,9 +82,12 @@ export default async function ConfigPage({ params }: PageProps) {
             Configura los parámetros básicos de la penca
           </p>
 
-          <PencaSettingsForm 
+          <PencaSettingsForm
             slug={params.slug}
             currentNumParticipants={penca.num_participants || 8}
+            currentExternalResultsUrl={penca.external_results_url || ''}
+            currentSyncInterval={penca.sync_interval_minutes || 0}
+            lastSyncAt={penca.last_sync_at}
           />
         </div>
 
@@ -97,8 +100,8 @@ export default async function ConfigPage({ params }: PageProps) {
             Define las reglas de puntuación y modalidades para esta penca
           </p>
 
-          <RulesForm 
-            pencaId={penca.id} 
+          <RulesForm
+            pencaId={penca.id}
             slug={params.slug}
             activeRuleset={activeRuleset}
             allRulesets={penca.rulesets || []}
