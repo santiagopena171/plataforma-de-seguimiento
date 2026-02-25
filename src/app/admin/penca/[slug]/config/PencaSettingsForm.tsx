@@ -83,6 +83,25 @@ export default function PencaSettingsForm({
     }
   };
 
+  const getNextSync = () => {
+    if (syncInterval === 0) return null;
+    if (!lastSyncAt) return 'Al guardar o primer ciclo';
+
+    const lastDate = new Date(lastSyncAt);
+    const nextDate = new Date(lastDate.getTime() + syncInterval * 60000);
+
+    // Si la fecha calculada ya pasó, significa que debería estar por ejecutarse 
+    // o el proceso está esperando el siguiente ciclo del servidor.
+    if (nextDate < new Date()) {
+      return 'En el próximo ciclo del servidor';
+    }
+
+    return nextDate.toLocaleString('es-UY', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'Nunca';
     return new Date(dateStr).toLocaleString('es-UY', {
@@ -104,7 +123,7 @@ export default function PencaSettingsForm({
 
       {success && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-sm text-green-800">✅ Operación completada correctamente</p>
+          <p className="text-sm text-green-800">✅ Operación completada correctamente. El sistema procesará los cambios en el próximo ciclo.</p>
         </div>
       )}
 
@@ -142,6 +161,13 @@ export default function PencaSettingsForm({
         </p>
       </div>
 
+      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <h4 className="text-sm font-semibold text-blue-900 mb-1">Nota sobre Sincronización Automática</h4>
+        <p className="text-xs text-blue-800">
+          La sincronización automática se ejecuta en segundo plano. Al cambiar la frecuencia, el sistema programará la próxima ejecución. Asegúrate de que el link de Excel sea correcto para evitar fallos.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
         <div>
           <label htmlFor="sync_interval" className="block text-sm font-medium text-gray-900 mb-2">
@@ -158,6 +184,11 @@ export default function PencaSettingsForm({
             <option value={30}>Cada 30 minutos</option>
             <option value={60}>Cada hora</option>
           </select>
+          {syncInterval > 0 && (
+            <p className="text-xs text-indigo-600 mt-2 font-medium">
+              Próxima ejecución estimada: <span className="underline">{getNextSync()}</span>
+            </p>
+          )}
         </div>
 
         <div>
@@ -168,12 +199,12 @@ export default function PencaSettingsForm({
             type="button"
             onClick={handleManualSync}
             disabled={syncing || !externalResultsUrl}
-            className="w-full px-4 py-2 bg-white border border-indigo-600 text-indigo-600 font-medium rounded-md hover:bg-indigo-50 disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50 transition-colors"
+            className="w-full px-4 py-2 bg-white border border-indigo-600 text-indigo-600 font-medium rounded-md hover:bg-indigo-50 disabled:border-gray-300 disabled:text-gray-400 disabled:bg-gray-50 transition-colors shadow-sm"
           >
             {syncing ? 'Sincronizando...' : 'Sincronizar Resultados Ahora'}
           </button>
-          <p className="text-xs text-gray-500 mt-2">
-            Última sincronización: <span className="font-semibold">{formatDate(lastSyncAt)}</span>
+          <p className="text-xs text-gray-500 mt-2 flex justify-between">
+            <span>Última sincronización: <span className="font-semibold">{formatDate(lastSyncAt)}</span></span>
           </p>
         </div>
       </div>
