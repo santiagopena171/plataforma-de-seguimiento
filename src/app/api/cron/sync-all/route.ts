@@ -4,6 +4,8 @@ import { exec } from 'child_process';
 import path from 'path';
 import util from 'util';
 
+export const dynamic = 'force-dynamic';
+
 const execPromise = util.promisify(exec);
 
 // Usar variables de entorno de servidor
