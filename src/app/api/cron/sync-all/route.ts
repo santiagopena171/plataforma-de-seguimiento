@@ -12,6 +12,7 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Iniciado el: 2026-02-25 18:30
 export async function GET(request: Request) {
     // Opcional: Verificar un token de seguridad para evitar ejecuciones externas no deseadas
     // const authHeader = request.headers.get('authorization');
