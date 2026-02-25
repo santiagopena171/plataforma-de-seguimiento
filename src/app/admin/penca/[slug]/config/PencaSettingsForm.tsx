@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface PencaSettingsFormProps {
@@ -26,6 +26,45 @@ export default function PencaSettingsForm({
   const [numParticipants, setNumParticipants] = useState(currentNumParticipants);
   const [externalResultsUrl, setExternalResultsUrl] = useState(currentExternalResultsUrl);
   const [syncInterval, setSyncInterval] = useState(currentSyncInterval);
+  const [countdown, setCountdown] = useState<string>('');
+
+  useEffect(() => {
+    if (syncInterval === 0) {
+      setCountdown('');
+      return;
+    }
+
+    const updateCountdown = () => {
+      const now = new Date();
+      let targetDate: Date;
+
+      if (!lastSyncAt) {
+        // Si no hay última sincronización, la próxima será en el siguiente ciclo de 15 min de Vercel
+        const next15 = new Date(now);
+        const minutes = next15.getMinutes();
+        const nextTick = Math.ceil((minutes + 0.1) / 15) * 15;
+        next15.setMinutes(nextTick, 0, 0);
+        targetDate = next15;
+      } else {
+        const lastDate = new Date(lastSyncAt);
+        targetDate = new Date(lastDate.getTime() + Number(syncInterval) * 60000);
+      }
+
+      const diff = targetDate.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setCountdown('En proceso...');
+      } else {
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        setCountdown(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+      }
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+    return () => clearInterval(timer);
+  }, [syncInterval, lastSyncAt]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,7 +158,6 @@ export default function PencaSettingsForm({
     return new Date(dateStr).toLocaleString('es-UY', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -197,9 +235,17 @@ export default function PencaSettingsForm({
             <option value={60}>Cada hora</option>
           </select>
           {Number(syncInterval) > 0 && (
-            <p className="text-xs text-indigo-600 mt-2 font-medium bg-indigo-50/50 p-2 rounded border border-indigo-100">
-              🕒 Próxima ejecución estimada: <span className="font-bold">{getNextSync()}</span>
-            </p>
+            <div className="mt-2 flex flex-col space-y-1">
+              <p className="text-xs text-indigo-600 font-medium bg-indigo-50/50 p-2 rounded border border-indigo-100 flex justify-between items-center">
+                <span>🕒 Próxima ejecución estimada:</span>
+                <span className="font-bold text-sm tracking-widest bg-white px-2 py-0.5 rounded shadow-sm border border-indigo-200">
+                  {countdown}
+                </span>
+              </p>
+              <p className="text-[10px] text-gray-400 italic">
+                * Hora programada: {getNextSync()}
+              </p>
+            </div>
           )}
         </div>
 
