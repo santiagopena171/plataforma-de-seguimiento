@@ -84,22 +84,34 @@ export default function PencaSettingsForm({
   };
 
   const getNextSync = () => {
-    if (syncInterval === 0) return null;
-    if (!lastSyncAt) return 'Al guardar o primer ciclo';
+    const interval = Number(syncInterval);
+    if (interval === 0) return null;
 
-    const lastDate = new Date(lastSyncAt);
-    const nextDate = new Date(lastDate.getTime() + syncInterval * 60000);
+    if (!lastSyncAt) return 'Se calculará tras el primer ciclo automático';
 
-    // Si la fecha calculada ya pasó, significa que debería estar por ejecutarse 
-    // o el proceso está esperando el siguiente ciclo del servidor.
-    if (nextDate < new Date()) {
-      return 'En el próximo ciclo del servidor';
+    try {
+      const lastDate = new Date(lastSyncAt);
+      if (isNaN(lastDate.getTime())) return 'Fecha de sincronización previa no válida';
+
+      const nextDate = new Date(lastDate.getTime() + interval * 60000);
+      const now = new Date();
+
+      if (nextDate <= now) {
+        return 'En cualquier momento (esperando ciclo del servidor)';
+      }
+
+      const isToday = nextDate.toDateString() === now.toDateString();
+
+      return nextDate.toLocaleString('es-UY', {
+        day: isToday ? undefined : '2-digit',
+        month: isToday ? undefined : '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) + (isToday ? ' (hoy)' : '');
+    } catch (e) {
+      console.error('Error calculando próxima sincronización:', e);
+      return 'Error al calcular';
     }
-
-    return nextDate.toLocaleString('es-UY', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   const formatDate = (dateStr?: string) => {
@@ -184,9 +196,9 @@ export default function PencaSettingsForm({
             <option value={30}>Cada 30 minutos</option>
             <option value={60}>Cada hora</option>
           </select>
-          {syncInterval > 0 && (
-            <p className="text-xs text-indigo-600 mt-2 font-medium">
-              Próxima ejecución estimada: <span className="underline">{getNextSync()}</span>
+          {Number(syncInterval) > 0 && (
+            <p className="text-xs text-indigo-600 mt-2 font-medium bg-indigo-50/50 p-2 rounded border border-indigo-100">
+              🕒 Próxima ejecución estimada: <span className="font-bold">{getNextSync()}</span>
             </p>
           )}
         </div>
