@@ -5,6 +5,7 @@ import Link from 'next/link';
 import LogoutButton from '@/components/LogoutButton';
 import RulesForm from './RulesForm';
 import PencaSettingsForm from './PencaSettingsForm';
+import { createServiceRoleClient } from '@/lib/supabase/client';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -37,8 +38,10 @@ export default async function ConfigPage({ params }: PageProps) {
     redirect('/dashboard');
   }
 
-  // Obtener la penca con sus reglas
-  const { data: penca, error: pencaError } = await supabase
+  const adminSupabase = createServiceRoleClient();
+
+  // Obtener la penca con sus reglas usando service role para bypass RLS
+  const { data: penca, error: pencaError } = await adminSupabase
     .from('pencas')
     .select(`
       *,
