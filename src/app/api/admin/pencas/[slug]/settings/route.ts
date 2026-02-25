@@ -1,6 +1,10 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { createServiceRoleClient } from '@/lib/supabase/client';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function PATCH(
   request: NextRequest,
@@ -39,13 +43,15 @@ export async function PATCH(
       );
     }
 
+    const adminSupabase = createServiceRoleClient();
+
     // Actualizar la penca usando el slug
-    const { error } = await supabase
+    const { error } = await adminSupabase
       .from('pencas')
       .update({
         num_participants,
         external_results_url: external_results_url || null,
-        sync_interval_minutes: sync_interval_minutes || 0
+        sync_interval_minutes: Number(sync_interval_minutes) || 0
       })
       .eq('slug', params.slug);
 

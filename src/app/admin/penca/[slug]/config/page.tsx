@@ -6,6 +6,9 @@ import LogoutButton from '@/components/LogoutButton';
 import RulesForm from './RulesForm';
 import PencaSettingsForm from './PencaSettingsForm';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface PageProps {
   params: {
     slug: string;
