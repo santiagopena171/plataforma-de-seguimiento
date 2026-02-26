@@ -88,6 +88,28 @@ export async function POST(
 
     if (error) throw error;
 
+    // Si ya existe un resultado oficial para la carrera, recalcular puntos
+    try {
+      const { data: result } = await adminClient
+        .from('race_results')
+        .select('official_order, first_place_tie, bonus_winner_points')
+        .eq('race_id', params.raceId)
+        .maybeSingle();
+
+      if (result && result.official_order && result.official_order.length > 0) {
+        const officialOrder = result.official_order;
+        const firstPlaceTie = !!result.first_place_tie;
+        const bonus = result.bonus_winner_points || 0;
+
+        const helper = await import('../../../../../../lib/calculateScores');
+        const calculateScores = helper.calculateScores || helper.default;
+        await calculateScores(adminClient, race.penca_id, params.raceId, officialOrder, firstPlaceTie, bonus);
+      }
+    } catch (err) {
+      console.error('Error recalculating scores after batch predictions:', err);
+      // no block: we still return success for predictions insertion
+    }
+
     return NextResponse.json({
       success: true,
       count: data.length,

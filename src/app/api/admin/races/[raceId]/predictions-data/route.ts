@@ -147,6 +147,8 @@ export async function GET(
                 predictionId: pred.id,
                 membershipId: pred.membership_id,
                 userId: pred.user_id,
+                // include raw winner_pick id so clients can prefill selects
+                winnerPickId: pred.winner_pick || null,
                 foundMembership: !!membership,
             };
         }) || [];

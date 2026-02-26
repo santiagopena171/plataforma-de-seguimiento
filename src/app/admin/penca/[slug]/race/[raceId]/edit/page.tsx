@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import AdminPredictionsForm from '@/components/AdminPredictionsForm';
 
 interface Horse {
   id: string;
@@ -353,6 +354,76 @@ export default function EditRacePage() {
           </div>
         </form>
       </main>
+      {/* Predicciones admin (editar predicciones de miembros) */}
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Editar Predicciones de Miembros</h2>
+          <p className="text-sm text-gray-600 mb-4">Desde aquí puedes modificar las predicciones de los miembros. Al guardar, si existe un resultado oficial, los puntos se recalcularán automáticamente.</p>
+          <EditPredictionsSection raceId={raceId} slug={slug} entries={horses} />
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function EditPredictionsSection({ raceId, slug, entries }: { raceId: string | null; slug: string | null; entries: any[] }) {
+  const [loading, setLoading] = useState(true);
+  const [players, setPlayers] = useState<any[]>([]);
+  const [existingPredictions, setExistingPredictions] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (!raceId) return;
+
+    async function load() {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/admin/races/${raceId}/predictions-data`);
+        if (!res.ok) throw new Error('No autorizado o error al cargar predicciones');
+        const data = await res.json();
+
+        // predictions-data returns an array of predictions with playerName and membershipId/userId
+        const preds = data.predictions || [];
+
+        const mappedPlayers = preds.map((p: any) => ({
+          membership_id: p.membershipId || p.membershipId,
+          user_id: p.userId || null,
+          name: p.playerName || 'Usuario',
+          is_guest: !p.userId,
+        }));
+
+        const predsMap: Record<string, any> = {};
+        preds.forEach((p: any) => {
+          const key = p.membershipId || p.userId;
+          if (key) {
+            // use the raw winner_pick id returned by the API so selects can be prefilled
+            predsMap[key] = { winner_pick: p.winnerPickId || null };
+          }
+        });
+
+        setPlayers(mappedPlayers);
+        setExistingPredictions(predsMap);
+      } catch (err) {
+        console.error('Error loading predictions for edit page:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, [raceId]);
+
+  if (!raceId) return <p className="text-sm text-red-600">Parámetros inválidos</p>;
+  if (loading) return <p className="text-sm text-gray-600">Cargando predicciones...</p>;
+
+  return (
+    <div>
+      <AdminPredictionsForm
+        raceId={raceId}
+        pencaSlug={slug || ''}
+        players={players}
+        entries={entries.map(e => ({ id: e.id, number: e.program_number || e.number, label: `#${e.program_number || e.number}` }))}
+        existingPredictions={existingPredictions}
+      />
     </div>
   );
 }
