@@ -1,11 +1,7 @@
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import path from 'path';
-import util from 'util';
-
-const execPromise = util.promisify(exec);
+import { syncPencaResults } from '@/lib/services/sync-results';
 
 export async function POST(
     request: NextRequest,
@@ -35,42 +31,30 @@ export async function POST(
     try {
         const { slug } = params;
 
-        // Ejecutar el script de sincronización
-        // Usamos el slug de la penca para que busque su propio URL en la BD
-        const scriptPath = path.join(process.cwd(), 'scripts', 'sync-results-excel.js');
-
         console.log(`Ejecutando sincronización manual para: ${slug}`);
 
-        // Ejecutamos el script de forma asíncrona para no bloquear la respuesta si tarda mucho,
-        // pero para darle feedback al usuario esperaremos el resultado inicial.
-        // Usamos --force para asegurar que se recalculen resultados si es necesario.
-        try {
-            const { stdout, stderr } = await execPromise(`node "${scriptPath}" --penca-slug "${slug}" --force`);
+        const result = await syncPencaResults(slug, true);
 
-            if (stderr && !stdout) {
-                console.error('Error en script:', stderr);
-                return NextResponse.json({ error: 'Error en el proceso de sincronización' }, { status: 500 });
-            }
-
-            console.log('Script output:', stdout);
-
+        if (!result.success) {
             return NextResponse.json({
-                success: true,
-                message: 'Sincronización completada exitosamente',
-                log: stdout
-            });
-        } catch (scriptError: any) {
-            console.error('Error ejecutando script:', scriptError);
-            return NextResponse.json({
-                error: 'Error al ejecutar el script de sincronización',
-                details: scriptError.message
+                error: result.error || 'Error en el proceso de sincronización',
+                log: result.logs
             }, { status: 500 });
         }
 
-    } catch (error) {
+        return NextResponse.json({
+            success: true,
+            message: 'Sincronización completada exitosamente',
+            log: result.logs
+        });
+
+    } catch (error: any) {
         console.error('Error en endpoint de sync:', error);
         return NextResponse.json(
-            { error: 'Error interno al procesar la sincronización' },
+            {
+                error: 'Error interno al procesar la sincronización',
+                details: error.message
+            },
             { status: 500 }
         );
     }

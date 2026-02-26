@@ -1,13 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { exec } from 'child_process';
-import path from 'path';
-import util from 'util';
+import { syncPencaResults } from '@/lib/services/sync-results';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-const execPromise = util.promisify(exec);
 
 export async function GET(request: Request) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -37,7 +33,6 @@ export async function GET(request: Request) {
         }
 
         const results = [];
-        const scriptPath = path.join(process.cwd(), 'scripts', 'sync-results-excel.js');
 
         for (const penca of pencas) {
             const now = new Date();
@@ -48,13 +43,22 @@ export async function GET(request: Request) {
                 console.log(`Ejecutando sincronización para: ${penca.slug} (Intervalo: ${penca.sync_interval_minutes}m, Pasaron: ${diffMinutes}m)`);
 
                 try {
-                    const { stdout } = await execPromise(`node "${scriptPath}" --penca-slug "${penca.slug}" --force`);
+                    const result = await syncPencaResults(penca.slug, true);
 
-                    results.push({
-                        slug: penca.slug,
-                        status: 'success',
-                        log: stdout.substring(0, 500) // Limitar log en respuesta
-                    });
+                    if (result.success) {
+                        results.push({
+                            slug: penca.slug,
+                            status: 'success',
+                            log: result.logs?.substring(0, 500)
+                        });
+                    } else {
+                        results.push({
+                            slug: penca.slug,
+                            status: 'error',
+                            error: result.error,
+                            log: result.logs?.substring(0, 500)
+                        });
+                    }
                 } catch (err: any) {
                     console.error(`Error sincronizando ${penca.slug}:`, err.message);
                     results.push({
