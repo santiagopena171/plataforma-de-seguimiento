@@ -32,13 +32,22 @@ serve(async (req: any) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const authHeader = req.headers.get('Authorization')!
-    const token = authHeader.replace('Bearer ', '')
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing or invalid Authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    const token = authHeader.replace('Bearer ', '').trim()
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
-    // Check if the token is a valid Service Role token (bypasses admin check)
-    // We already initialized supabaseClient with the Service Role, so we'll just verify the JWT payload
-    const decodedPayload = parseJwt(token);
-    const isServiceRole = decodedPayload && decodedPayload.role === 'service_role';
+    // Reconocer Service Role de forma fiable: comparación directa con la key de la función
+    // (el JWT del Service Role a veces no tiene role==='service_role' en todos los entornos)
+    const isServiceRoleByKey = !!serviceRoleKey && token.length > 0 && token === serviceRoleKey
+    const decodedPayload = parseJwt(token)
+    const isServiceRoleByJwt = !!decodedPayload && decodedPayload.role === 'service_role'
+    const isServiceRole = isServiceRoleByKey || isServiceRoleByJwt
 
     let userId = null;
 

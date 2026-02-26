@@ -65,9 +65,10 @@ export async function syncPencaResults(pencaSlug: string, isForce: boolean = fal
             }
 
             // Obtener los caballos (entries) de esa carrera
+            // Usamos alias horse_name:label porque en la BD la columna se llama label
             const { data: entries, error: entriesError } = await supabase
                 .from('race_entries')
-                .select('id, program_number, horse_name')
+                .select('id, program_number, horse_name:label')
                 .eq('race_id', race.id);
 
             if (entriesError || !entries) {
