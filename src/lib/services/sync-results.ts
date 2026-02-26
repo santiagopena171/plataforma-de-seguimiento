@@ -173,20 +173,29 @@ async function fetchExcel(url: string, log: (m: string) => void) {
 
         if (!racingDate) throw new Error('No se encontró el parámetro RacingDate en la URL.');
 
-        const commonRacetrackIds = [1, 16, 4];
+        // Probar varios hipódromos (Maroñas, Las Piedras, Melo, Florida, etc.)
+        // La API de X-Turf usa distintos racetrackId por hipódromo y no están documentados,
+        // así que probamos una lista extendida y nos quedamos con el primer Excel "grande".
+        const candidateRacetrackIds = [1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20];
 
-        for (const id of commonRacetrackIds) {
+        for (const id of candidateRacetrackIds) {
             const tryUrl = `https://mobile-rest-services-v3.azurewebsites.net//XTurfResourcesService.svc/GetRacingDocument?docType=ResultadoCarreraWeb&racetrackId=${id}&date=${racingDate}&periodId=0&raceNum=0&language=es-UY&docOrd=0&exportFormat=ExcelRecord`;
 
             try {
                 log(`Probando descarga con racetrackId=${id}...`);
                 const response = await fetch(tryUrl);
-                if (!response.ok) continue;
+                if (!response.ok) {
+                    log(`  ID ${id} falló con status ${response.status}`);
+                    continue;
+                }
 
                 const arrayBuffer = await response.arrayBuffer();
-                if (arrayBuffer.byteLength < 1000) continue;
+                if (arrayBuffer.byteLength < 1000) {
+                    log(`  ID ${id} devolvió un archivo vacío o erróneo (bytes=${arrayBuffer.byteLength}).`);
+                    continue;
+                }
 
-                log(`✅ Link de Excel descubierto y descargado con ID ${id}`);
+                log(`✅ Link de Excel descubierto y descargado con ID ${id} (tamaño=${arrayBuffer.byteLength} bytes)`);
                 return xlsx.read(arrayBuffer, { type: 'buffer' });
             } catch (e) {
                 continue;
@@ -224,15 +233,22 @@ function parseResults(workbook: any, log: (m: string) => void) {
         if (!currentRaceSeq) continue;
 
         const dividendStr = String(row[13] || '').replace(',', '.').trim();
-        const posMatch = col0.match(/^(\d+)º$/);
+
+        // Detectar posiciones, ej: "1º", "2º", "3º", "4º", "5º", etc.
+        // En algunos hipódromos la posición puede no estar en la primera columna,
+        // por eso escaneamos las primeras columnas buscando el patrón Nº.
         let position: number | null = null;
         let hasAnyPosition = false;
-
-        if (posMatch) {
-            const posNum = parseInt(posMatch[1], 10);
-            if (posNum > 0) {
-                hasAnyPosition = true;
-                if (posNum <= 4) position = posNum;
+        for (let colIdx = 0; colIdx <= 2; colIdx++) {
+            const cell = String(row[colIdx] || '').trim();
+            const posMatch = cell.match(/^(\d+)º$/);
+            if (posMatch) {
+                const posNum = parseInt(posMatch[1], 10);
+                if (posNum > 0) {
+                    hasAnyPosition = true;
+                    if (posNum <= 4) position = posNum;
+                }
+                break;
             }
         }
 
@@ -248,7 +264,12 @@ function parseResults(workbook: any, log: (m: string) => void) {
                     parsedRaces[currentRaceSeq].dividend = parseFloat(dividendStr);
                 }
             } else if (!hasAnyPosition) {
-                parsedRaces[currentRaceSeq].scratched.push(horseNum);
+                // Para marcar retirados buscamos palabras clave en toda la fila
+                const rowText = row.map((c) => String(c || '').toLowerCase()).join(' ');
+                const hasRetiroFlag = /retiro|retirado|ret\.|fs\b|ff\b|no corre|no particip/.test(rowText);
+                if (hasRetiroFlag) {
+                    parsedRaces[currentRaceSeq].scratched.push(horseNum);
+                }
             }
         }
     }
