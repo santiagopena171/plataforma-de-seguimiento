@@ -127,7 +127,7 @@ export async function POST(
       const helper = await import('../../../../../../lib/calculateScores');
       // helper exports default and named; prefer named
       const calculateScores = helper.calculateScores || helper.default;
-      await calculateScores(adminClient, race.penca_id, raceId, officialOrder, firstPlaceTie, bonusWinnerPoints);
+      await calculateScores(adminClient, race.penca?.id || race.penca_id, raceId, officialOrder, firstPlaceTie, bonusWinnerPoints);
     } catch (err) {
       console.error('Error calculating scores with helper:', err);
       return NextResponse.json({ error: 'Error al calcular puntos' }, { status: 500 });

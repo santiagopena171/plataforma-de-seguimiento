@@ -70,7 +70,18 @@ function parseEnv(filePath) {
   console.log('predictions count:', (predictions||[]).length);
 
   const pointsTop3 = ruleset.points_top3 || {};
-  const modalities = ruleset.modalities_enabled || [];
+  // Normalize modality names (support Spanish names like 'lugar')
+  const rawModalities = ruleset.modalities_enabled || [];
+  const modalities = rawModalities.map(m => {
+    if (!m) return m;
+    const mm = m.toString().toLowerCase();
+    if (mm === 'lugar' || mm === 'place') return 'place';
+    if (mm === 'ganador' || mm === 'winner') return 'winner';
+    if (mm === 'top3' || mm === 'top_3' || mm === 'top-three') return 'top3';
+    if (mm === 'exacta' || mm === 'exacta') return 'exacta';
+    if (mm === 'trifecta') return 'trifecta';
+    return m;
+  });
 
   for (const prediction of (predictions||[])) {
     let totalPoints = 0;
