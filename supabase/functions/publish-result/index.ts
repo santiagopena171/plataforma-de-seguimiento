@@ -200,11 +200,29 @@ async function calculateScores(
   }
 
   // Get race entries to handle scratched entries replacement (cycle to next program_number)
-  const { data: entries } = await supabaseClient
+  const { data: allEntries } = await supabaseClient
     .from('race_entries')
     .select('id, program_number')
     .eq('race_id', raceId)
     .order('program_number', { ascending: true })
+
+  // Detect the real number of horses in this race by finding the max program_number
+  // among entries that actually participated (appear in official_order or scratched list).
+  // Races may have 15 placeholder entries in the DB but only 10 real horses — cycling
+  // must wrap within the real field only (e.g. if #10 is scratched → cycle to #1, not #11).
+  const realEntryIds = new Set([...officialOrder, ...scratchedEntries]);
+  const realMaxProgramNumber = allEntries
+    ? allEntries
+        .filter((e: any) => realEntryIds.has(e.id))
+        .reduce((max: number, e: any) => Math.max(max, e.program_number), 0)
+    : 0;
+
+  // Only use entries within the real field for the substitution cycle
+  const entries = allEntries
+    ? (realMaxProgramNumber > 0
+        ? allEntries.filter((e: any) => e.program_number <= realMaxProgramNumber)
+        : allEntries)
+    : [];
 
   const getActiveEntry = (entryId: string) => {
     if (!entryId || !scratchedEntries.includes(entryId) || !entries || entries.length === 0) return entryId;
