@@ -23,7 +23,7 @@ export async function syncPencaResults(pencaSlug: string, isForce: boolean = fal
         // 1. Obtener la Penca
         const { data: penca, error: pencaError } = await supabase
             .from('pencas')
-            .select('id, external_results_url')
+            .select('id, external_results_url, racetrack_id')
             .eq('slug', pencaSlug)
             .single();
 
@@ -36,8 +36,15 @@ export async function syncPencaResults(pencaSlug: string, isForce: boolean = fal
             throw new Error(`La penca "${pencaSlug}" no tiene un "Link de Resultados Excel" configurado.`);
         }
 
+        const racingTrackId: number | null = (penca as any).racetrack_id ?? null;
+        if (racingTrackId) {
+            log(`🏟 Usando hipódromo fijo: racetrackId=${racingTrackId}`);
+        } else {
+            log(`🔍 Sin hipódromo fijo configurado — buscando automáticamente...`);
+        }
+
         // 2. Descargar y parsear el Excel
-        const workbook = await fetchExcel(fileUrl, log);
+        const workbook = await fetchExcel(fileUrl, log, racingTrackId);
         const parsedData = parseResults(workbook, log);
 
         log(`Se encontraron ${Object.keys(parsedData).length} carreras en el Excel.`);
@@ -165,7 +172,7 @@ export async function syncPencaResults(pencaSlug: string, isForce: boolean = fal
     }
 }
 
-async function fetchExcel(url: string, log: (m: string) => void) {
+async function fetchExcel(url: string, log: (m: string) => void, preferredRacetrackId: number | null = null) {
     if (url.includes('hipica.maronas.com.uy/RacingInfo/RacingDate')) {
         log(`Detectada URL de la página de Maroñas. Intentando extraer link de Excel...`);
         const urlParams = new URL(url).searchParams;
@@ -173,12 +180,12 @@ async function fetchExcel(url: string, log: (m: string) => void) {
 
         if (!racingDate) throw new Error('No se encontró el parámetro RacingDate en la URL.');
 
-        // Probar varios hipódromos (Maroñas, Las Piedras, Melo, Florida, etc.)
-        // La API de X-Turf usa distintos racetrackId por hipódromo y no están documentados,
-        // así que probamos una lista extendida y nos quedamos con el primer Excel "grande".
-        const candidateRacetrackIds = [1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20];
+        // Si hay un racetrackId configurado, usarlo directamente sin ciclar
+        const idsToTry = preferredRacetrackId
+            ? [preferredRacetrackId]
+            : [1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20];
 
-        for (const id of candidateRacetrackIds) {
+        for (const id of idsToTry) {
             const tryUrl = `https://mobile-rest-services-v3.azurewebsites.net//XTurfResourcesService.svc/GetRacingDocument?docType=ResultadoCarreraWeb&racetrackId=${id}&date=${racingDate}&periodId=0&raceNum=0&language=es-UY&docOrd=0&exportFormat=ExcelRecord`;
 
             try {

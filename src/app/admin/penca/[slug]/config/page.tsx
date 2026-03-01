@@ -93,6 +93,7 @@ export default async function ConfigPage({ params }: PageProps) {
             currentNumParticipants={penca.num_participants || 8}
             currentExternalResultsUrl={penca.external_results_url || ''}
             currentSyncInterval={penca.sync_interval_minutes || 0}
+            currentRacetrackId={penca.racetrack_id ?? null}
             lastSyncAt={penca.last_sync_at}
           />
         </div>

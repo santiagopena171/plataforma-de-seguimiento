@@ -3,11 +3,18 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
+interface TrackOption {
+  racetrack_id: number;
+  name: string;
+  race_count: number;
+}
+
 interface PencaSettingsFormProps {
   slug: string;
   currentNumParticipants: number;
   currentExternalResultsUrl?: string;
   currentSyncInterval?: number;
+  currentRacetrackId?: number | null;
   lastSyncAt?: string;
 }
 
@@ -16,6 +23,7 @@ export default function PencaSettingsForm({
   currentNumParticipants,
   currentExternalResultsUrl = '',
   currentSyncInterval = 0,
+  currentRacetrackId = null,
   lastSyncAt
 }: PencaSettingsFormProps) {
   const router = useRouter();
@@ -27,6 +35,12 @@ export default function PencaSettingsForm({
   const [externalResultsUrl, setExternalResultsUrl] = useState(currentExternalResultsUrl);
   const [syncInterval, setSyncInterval] = useState(currentSyncInterval);
   const [countdown, setCountdown] = useState<string>('');
+
+  // Estado para búsqueda de hipódromos
+  const [searchingTracks, setSearchingTracks] = useState(false);
+  const [availableTracks, setAvailableTracks] = useState<TrackOption[]>([]);
+  const [selectedRacetrackId, setSelectedRacetrackId] = useState<number | null>(currentRacetrackId ?? null);
+  const [tracksSearchError, setTracksSearchError] = useState<string | null>(null);
 
   useEffect(() => {
     if (syncInterval === 0) {
@@ -66,6 +80,35 @@ export default function PencaSettingsForm({
     return () => clearInterval(timer);
   }, [syncInterval, lastSyncAt]);
 
+  const handleSearchTracks = async () => {
+    setSearchingTracks(true);
+    setTracksSearchError(null);
+    setAvailableTracks([]);
+
+    try {
+      const res = await fetch(`/api/admin/pencas/${slug}/find-hipodromos`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al buscar hipódromos');
+      }
+
+      if (!data.tracks || data.tracks.length === 0) {
+        setTracksSearchError(`No se encontraron hipódromos con carreras para la fecha en la URL (${data.racingDate}). Verificá que la URL tenga resultados publicados.`);
+      } else {
+        setAvailableTracks(data.tracks);
+        // Si solo hay uno, seleccionarlo automáticamente
+        if (data.tracks.length === 1 && selectedRacetrackId === null) {
+          setSelectedRacetrackId(data.tracks[0].racetrack_id);
+        }
+      }
+    } catch (err) {
+      setTracksSearchError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setSearchingTracks(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -79,7 +122,8 @@ export default function PencaSettingsForm({
         body: JSON.stringify({
           num_participants: numParticipants,
           external_results_url: externalResultsUrl,
-          sync_interval_minutes: syncInterval
+          sync_interval_minutes: syncInterval,
+          racetrack_id: selectedRacetrackId,
         }),
       });
 
@@ -209,6 +253,79 @@ export default function PencaSettingsForm({
         <p className="text-sm text-gray-500 mt-2">
           URL de la página de resultados de Maroñas para la automatización.
         </p>
+      </div>
+
+      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-3">
+        <div>
+          <h4 className="text-sm font-semibold text-gray-900 mb-1">Hipódromo para sincronización</h4>
+          <p className="text-xs text-gray-600 mb-3">
+            Si hay carreras en más de un hipódromo el mismo día, seleccioná el que corresponde a esta penca.
+            Si no seleccionás ninguno, se usará el primero que tenga resultados publicados.
+          </p>
+
+          {selectedRacetrackId !== null && availableTracks.length === 0 && (
+            <div className="flex items-center justify-between bg-indigo-50 border border-indigo-200 rounded px-3 py-2 mb-3">
+              <span className="text-xs text-indigo-800">
+                🏇 Hipódromo configurado: <strong>ID {selectedRacetrackId}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedRacetrackId(null)}
+                className="text-xs text-red-600 hover:text-red-800 ml-4"
+              >
+                Limpiar
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleSearchTracks}
+            disabled={searchingTracks || !externalResultsUrl}
+            className="px-4 py-2 bg-white border border-gray-400 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {searchingTracks ? 'Buscando...' : 'Buscar hipódromos disponibles'}
+          </button>
+
+          {tracksSearchError && (
+            <p className="text-xs text-red-700 mt-2 bg-red-50 border border-red-200 rounded px-3 py-2">
+              ⚠️ {tracksSearchError}
+            </p>
+          )}
+
+          {availableTracks.length > 0 && (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs font-medium text-gray-700">Seleccioná el hipódromo:</p>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="racetrack"
+                  value={-1}
+                  checked={selectedRacetrackId === null}
+                  onChange={() => setSelectedRacetrackId(null)}
+                  className="accent-indigo-600"
+                />
+                <span className="text-sm text-gray-700">Auto-detectar (tomar el primero disponible)</span>
+              </label>
+              {availableTracks.map((track) => (
+                <label key={track.racetrack_id} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="racetrack"
+                    value={track.racetrack_id}
+                    checked={selectedRacetrackId === track.racetrack_id}
+                    onChange={() => setSelectedRacetrackId(track.racetrack_id)}
+                    className="accent-indigo-600"
+                  />
+                  <span className="text-sm text-gray-700">
+                    <strong>{track.name}</strong>
+                    <span className="text-gray-500 ml-2">({track.race_count} carrera{track.race_count !== 1 ? 's' : ''})</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">

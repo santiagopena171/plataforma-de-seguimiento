@@ -33,7 +33,7 @@ export async function PATCH(
 
   try {
     const body = await request.json();
-    const { num_participants, external_results_url, sync_interval_minutes } = body;
+    const { num_participants, external_results_url, sync_interval_minutes, racetrack_id } = body;
 
     // Validar
     if (!num_participants || num_participants < 3) {
@@ -51,7 +51,8 @@ export async function PATCH(
       .update({
         num_participants,
         external_results_url: external_results_url || null,
-        sync_interval_minutes: Number(sync_interval_minutes) || 0
+        sync_interval_minutes: Number(sync_interval_minutes) || 0,
+        racetrack_id: racetrack_id !== undefined ? (racetrack_id === null ? null : Number(racetrack_id)) : undefined,
       })
       .eq('slug', params.slug);
 
