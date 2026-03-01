@@ -142,6 +142,13 @@ export async function GET(
         const publishedCount = races.filter((r: any) => r.status === 'result_published').length;
 
         try {
+        // Minimal smoke test — remove once working
+        return new ImageResponse(
+            (<div style={{ display: 'flex', width: 400, height: 100, backgroundColor: '#4f46e5', color: 'white', fontSize: 24, alignItems: 'center', justifyContent: 'center' }}>
+                {penca.name} — {participants.length} jugadores
+            </div>),
+            { width: 400, height: 100 }
+        );
         return new ImageResponse(
             (
                 <div
