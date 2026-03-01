@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
@@ -104,7 +104,23 @@ export async function GET(
     try {
         const data = await fetchDailySummary(params.slug);
         if (!data) {
-            return new Response('No data', { status: 404 });
+            // Debug: check what's available
+            const supabase = createClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.SUPABASE_SERVICE_ROLE_KEY!,
+                { auth: { autoRefreshToken: false, persistSession: false } }
+            );
+            const { data: penca, error: pencaError } = await supabase.from('pencas').select('id, name').eq('slug', params.slug).single();
+            const { data: allPencas } = await supabase.from('pencas').select('slug').limit(10);
+            return NextResponse.json({
+                error: 'No data found',
+                slug: params.slug,
+                pencaFound: penca,
+                pencaError: pencaError?.message,
+                allSlugs: allPencas?.map((p: any) => p.slug),
+                hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+                hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+            }, { status: 404 });
         }
 
         const { penca, raceDay, races, participants } = data;
