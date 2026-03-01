@@ -2,8 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   env: {
-    CALLMEBOT_PHONE: process.env.CALLMEBOT_PHONE,
-    CALLMEBOT_APIKEY: process.env.CALLMEBOT_APIKEY,
+    CALLMEBOT_PHONE: process.env.CALLMEBOT_PHONE || '59897784716',
+    CALLMEBOT_APIKEY: process.env.CALLMEBOT_APIKEY || '3239720',
   },
   images: {
     remotePatterns: [
