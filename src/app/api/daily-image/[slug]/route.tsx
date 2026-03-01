@@ -112,8 +112,7 @@ function renderImage(
     const imgH = PAD * 2 + titleH + HEADER_H + participants.length * ROW_H + 36;
     const dayLabel = raceDay.day_name || '';
 
-    return new ImageResponse(
-        (
+    return new ImageResponse(        (
             <div
                 style={{
                     display: 'flex',
@@ -201,7 +200,7 @@ function renderImage(
                 </div>
             </div>
         ),
-        { width: imgW, height: imgH }
+        { width: imgW, height: imgH, headers: { 'Cache-Control': 'no-store, max-age=0' } }
     );
 }
 

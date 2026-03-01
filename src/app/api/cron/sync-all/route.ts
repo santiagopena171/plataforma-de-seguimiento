@@ -143,8 +143,9 @@ export async function GET(request: Request) {
 
         for (const r of synced) {
             if (r.status === 'success') {
-                // Enviar imagen del resumen diario
-                const imageUrl = `${appUrl}/api/daily-image/${r.slug}`;
+                // Enviar imagen del resumen diario (cache-buster para evitar imagen vieja)
+                const ts = Date.now();
+                const imageUrl = `${appUrl}/api/daily-image/${r.slug}?t=${ts}`;
                 const now = new Date().toLocaleString('es-UY', { timeZone: 'America/Montevideo' });
                 const result = await sendTelegramPhoto(imageUrl, `🏇 Sync automática — ${r.slug} (${now})`);
                 telegramResults.push({ slug: r.slug, ...result });
