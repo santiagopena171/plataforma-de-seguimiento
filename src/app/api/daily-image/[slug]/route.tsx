@@ -103,7 +103,7 @@ export async function GET(
 ) {
     // Quick probe: ?info=1 returns JSON without rendering
     if (req.nextUrl.searchParams.get('info') === '1') {
-        return NextResponse.json({ build: 'v769391e', slug: params.slug, ok: true });
+        return NextResponse.json({ build: 'v3c3710e', slug: params.slug, ok: true });
     }
     try {
         const data = await fetchDailySummary(params.slug);
@@ -212,11 +212,11 @@ export async function GET(
                                 </div>
 
                                 {p.raceData.map((rd, ri) => (
-                                    <div key={ri} style={{ display: 'flex', width: CELL_W * 2, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#e5e7eb', height: '100%', alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', width: CELL_W, height: '100%', backgroundColor: rd.pred !== null ? '#3b82f6' : '#e5e7eb', justifyContent: 'center', alignItems: 'center', color: rd.pred !== null ? 'white' : '#9ca3af', fontWeight: 'bold', fontSize: FONT_SIZE }}>
+                                    <div key={ri} style={{ display: 'flex', width: CELL_W * 2, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#e5e7eb', height: ROW_H, alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', width: CELL_W, height: ROW_H, backgroundColor: rd.pred !== null ? '#3b82f6' : '#e5e7eb', justifyContent: 'center', alignItems: 'center', color: rd.pred !== null ? 'white' : '#9ca3af', fontWeight: 'bold', fontSize: FONT_SIZE }}>
                                             {rd.pred !== null ? String(rd.pred) : '-'}
                                         </div>
-                                        <div style={{ display: 'flex', width: CELL_W, height: '100%', backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center', color: rd.accum !== null ? '#dc2626' : '#d1d5db', fontWeight: 'bold', fontSize: FONT_SIZE, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#f3f4f6' }}>
+                                        <div style={{ display: 'flex', width: CELL_W, height: ROW_H, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center', color: rd.accum !== null ? '#dc2626' : '#d1d5db', fontWeight: 'bold', fontSize: FONT_SIZE, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#f3f4f6' }}>
                                             {rd.accum !== null ? String(rd.accum) : ''}
                                         </div>
                                     </div>
@@ -226,12 +226,12 @@ export async function GET(
                     </div>
 
                     {/* Leyenda */}
-                    <div style={{ display: 'flex', marginTop: 8, fontSize: 11, color: '#9ca3af', columnGap: 16 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', columnGap: 4 }}>
+                    <div style={{ display: 'flex', marginTop: 8, fontSize: 11, color: '#9ca3af', gap: 16 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <div style={{ width: 12, height: 12, backgroundColor: '#3b82f6', borderRadius: 2 }}></div>
                             <div style={{ display: 'flex' }}>Prediccion</div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', columnGap: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <div style={{ width: 12, height: 12, backgroundColor: '#fee2e2', borderRadius: 2, borderWidth: 1, borderStyle: 'solid', borderColor: '#fca5a5' }}></div>
                             <div style={{ display: 'flex', color: '#dc2626' }}>Pts acumulados</div>
                         </div>
