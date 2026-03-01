@@ -111,13 +111,19 @@ export async function GET(
                 { auth: { autoRefreshToken: false, persistSession: false } }
             );
             const { data: penca, error: pencaError } = await supabase.from('pencas').select('id, name').eq('slug', params.slug).single();
-            const { data: allPencas } = await supabase.from('pencas').select('slug').limit(10);
+            const { data: raceDays } = await supabase.from('race_days').select('id, day_name').eq('penca_id', penca?.id ?? '').order('day_date', { ascending: false }).limit(5);
+            const { data: publishedRaces } = await supabase.from('races').select('id, race_day_id, status').eq('status', 'result_published').limit(5);
+            const { data: allMemberships } = await supabase.from('memberships').select('id, role').eq('penca_id', penca?.id ?? '').limit(5);
             return NextResponse.json({
                 error: 'No data found',
                 slug: params.slug,
-                pencaFound: penca,
+                pencaFound: !!penca,
+                pencaId: penca?.id,
                 pencaError: pencaError?.message,
-                allSlugs: allPencas?.map((p: any) => p.slug),
+                raceDaysCount: raceDays?.length ?? 0,
+                raceDays: raceDays?.map((r: any) => r.day_name),
+                publishedRacesCount: publishedRaces?.length ?? 0,
+                membershipsCount: allMemberships?.length ?? 0,
                 hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
                 hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
             }, { status: 404 });
