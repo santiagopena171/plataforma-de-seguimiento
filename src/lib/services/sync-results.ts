@@ -273,7 +273,9 @@ function parseResults(workbook: any, log: (m: string) => void) {
             const horseNum = parseInt(horseMatch[1], 10);
             if (position) {
                 parsedRaces[currentRaceSeq][position].push(horseNum);
-                if (position === 1 && dividendStr && !isNaN(parseFloat(dividendStr))) {
+                // Capturar dividendo solo del primer caballo en posición 1
+                // (no sobreescribir con los valores de un segundo caballo empatado)
+                if (position === 1 && parsedRaces[currentRaceSeq].dividend === 0 && dividendStr && !isNaN(parseFloat(dividendStr))) {
                     parsedRaces[currentRaceSeq].dividend = parseFloat(dividendStr);
                 }
             } else if (!hasAnyPosition) {
