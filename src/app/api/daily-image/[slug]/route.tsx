@@ -141,6 +141,7 @@ export async function GET(
             : '';
         const publishedCount = races.filter((r: any) => r.status === 'result_published').length;
 
+        try {
         return new ImageResponse(
             (
                 <div
@@ -162,7 +163,7 @@ export async function GET(
                     </div>
 
                     {/* Tabla */}
-                    <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid #d1d5db', borderRadius: 6, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid #d1d5db', borderRadius: 6 }}>
 
                         {/* Header fila 1 */}
                         <div style={{ display: 'flex', backgroundColor: '#4f46e5' }}>
@@ -231,8 +232,16 @@ export async function GET(
             ),
             { width: imgW, height: imgH }
         );
+        } catch (imgErr: any) {
+            console.error('ImageResponse error:', imgErr);
+            return NextResponse.json({
+                error: 'ImageResponse failed: ' + imgErr.message,
+                stack: imgErr.stack?.substring(0, 800),
+                imgW, imgH, numRaces, participantCount: participants.length,
+            }, { status: 500 });
+        }
     } catch (err: any) {
         console.error('daily-image error:', err);
-        return new Response('Error: ' + err.message, { status: 500 });
+        return NextResponse.json({ error: err.message, stack: err.stack?.substring(0, 500) }, { status: 500 });
     }
 }
