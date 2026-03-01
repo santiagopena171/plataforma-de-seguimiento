@@ -146,13 +146,6 @@ export async function GET(
         const publishedCount = races.filter((r: any) => r.status === 'result_published').length;
 
         try {
-        // Minimal smoke test — remove once working
-        return new ImageResponse(
-            (<div style={{ display: 'flex', width: 400, height: 100, backgroundColor: '#4f46e5', color: 'white', fontSize: 24, alignItems: 'center', justifyContent: 'center' }}>
-                {penca.name} — {participants.length} jugadores
-            </div>),
-            { width: 400, height: 100 }
-        );
         return new ImageResponse(
             (
                 <div
@@ -162,8 +155,10 @@ export async function GET(
                         width: imgW,
                         height: imgH,
                         backgroundColor: '#f9fafb',
-                        padding: PAD,
-                        fontFamily: 'sans-serif',
+                        paddingTop: PAD,
+                        paddingBottom: PAD,
+                        paddingLeft: PAD,
+                        paddingRight: PAD,
                     }}
                 >
                     {/* Encabezado */}
@@ -174,13 +169,13 @@ export async function GET(
                     </div>
 
                     {/* Tabla */}
-                    <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid #d1d5db', borderRadius: 6 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', borderWidth: 1, borderStyle: 'solid', borderColor: '#d1d5db', borderRadius: 6 }}>
 
                         {/* Header fila 1 */}
                         <div style={{ display: 'flex', backgroundColor: '#4f46e5' }}>
-                            <div style={{ width: NAME_W, padding: '6px 8px', color: 'white', fontWeight: 'bold', fontSize: 12 }}>JUGADOR</div>
+                            <div style={{ width: NAME_W, paddingTop: 6, paddingBottom: 6, paddingLeft: 8, paddingRight: 8, color: 'white', fontWeight: 'bold', fontSize: 12 }}>JUGADOR</div>
                             {(races as any[]).map((race: any) => (
-                                <div key={race.id} style={{ display: 'flex', width: CELL_W * 2, justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', fontSize: 12, borderLeft: '1px solid #6366f1', padding: '6px 0' }}>
+                                <div key={race.id} style={{ display: 'flex', width: CELL_W * 2, justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', fontSize: 12, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#6366f1', paddingTop: 6, paddingBottom: 6 }}>
                                     C{race.seq}
                                 </div>
                             ))}
@@ -188,11 +183,11 @@ export async function GET(
 
                         {/* Header fila 2: pred / pts */}
                         <div style={{ display: 'flex', backgroundColor: '#6366f1' }}>
-                            <div style={{ width: NAME_W, padding: '2px 8px', fontSize: 10, color: '#c7d2fe' }}></div>
+                            <div style={{ width: NAME_W, paddingTop: 2, paddingBottom: 2, paddingLeft: 8, paddingRight: 8, fontSize: 10, color: '#c7d2fe' }}></div>
                             {(races as any[]).map((race: any) => (
-                                <div key={race.id} style={{ display: 'flex', width: CELL_W * 2, borderLeft: '1px solid #818cf8' }}>
-                                    <div style={{ display: 'flex', width: CELL_W, justifyContent: 'center', fontSize: 10, color: '#bfdbfe', padding: '2px 0' }}>pred</div>
-                                    <div style={{ display: 'flex', width: CELL_W, justifyContent: 'center', fontSize: 10, color: '#fecaca', padding: '2px 0' }}>pts</div>
+                                <div key={race.id} style={{ display: 'flex', width: CELL_W * 2, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#818cf8' }}>
+                                    <div style={{ display: 'flex', width: CELL_W, justifyContent: 'center', fontSize: 10, color: '#bfdbfe', paddingTop: 2, paddingBottom: 2 }}>pred</div>
+                                    <div style={{ display: 'flex', width: CELL_W, justifyContent: 'center', fontSize: 10, color: '#fecaca', paddingTop: 2, paddingBottom: 2 }}>pts</div>
                                 </div>
                             ))}
                         </div>
@@ -205,21 +200,23 @@ export async function GET(
                                     display: 'flex',
                                     height: ROW_H,
                                     backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f3f4f6',
-                                    borderTop: '1px solid #e5e7eb',
+                                    borderTopWidth: 1,
+                                    borderTopStyle: 'solid',
+                                    borderTopColor: '#e5e7eb',
                                     alignItems: 'center',
                                 }}
                             >
-                                <div style={{ display: 'flex', width: NAME_W, padding: '0 8px', fontSize: FONT_SIZE, color: '#1f2937', fontWeight: idx < 3 ? 'bold' : 'normal' }}>
-                                    <span style={{ color: '#6b7280', marginRight: 4, minWidth: 18 }}>{idx + 1}.</span>
-                                    <span>{p.name.length > 14 ? p.name.substring(0, 13) + '…' : p.name}</span>
+                                <div style={{ display: 'flex', width: NAME_W, paddingLeft: 8, paddingRight: 8, fontSize: FONT_SIZE, color: '#1f2937', fontWeight: idx < 3 ? 'bold' : 'normal' }}>
+                                    <div style={{ display: 'flex', color: '#6b7280', marginRight: 4, width: 18 }}>{idx + 1}.</div>
+                                    <div style={{ display: 'flex' }}>{p.name.length > 14 ? p.name.substring(0, 13) + '…' : p.name}</div>
                                 </div>
 
                                 {p.raceData.map((rd, ri) => (
-                                    <div key={ri} style={{ display: 'flex', width: CELL_W * 2, borderLeft: '1px solid #e5e7eb', height: '100%', alignItems: 'center' }}>
+                                    <div key={ri} style={{ display: 'flex', width: CELL_W * 2, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#e5e7eb', height: '100%', alignItems: 'center' }}>
                                         <div style={{ display: 'flex', width: CELL_W, height: '100%', backgroundColor: rd.pred !== null ? '#3b82f6' : '#e5e7eb', justifyContent: 'center', alignItems: 'center', color: rd.pred !== null ? 'white' : '#9ca3af', fontWeight: 'bold', fontSize: FONT_SIZE }}>
                                             {rd.pred !== null ? String(rd.pred) : '-'}
                                         </div>
-                                        <div style={{ display: 'flex', width: CELL_W, height: '100%', backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center', color: rd.accum !== null ? '#dc2626' : '#d1d5db', fontWeight: 'bold', fontSize: FONT_SIZE, borderLeft: '1px solid #f3f4f6' }}>
+                                        <div style={{ display: 'flex', width: CELL_W, height: '100%', backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center', color: rd.accum !== null ? '#dc2626' : '#d1d5db', fontWeight: 'bold', fontSize: FONT_SIZE, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#f3f4f6' }}>
                                             {rd.accum !== null ? String(rd.accum) : ''}
                                         </div>
                                     </div>
@@ -229,14 +226,14 @@ export async function GET(
                     </div>
 
                     {/* Leyenda */}
-                    <div style={{ display: 'flex', marginTop: 8, fontSize: 11, color: '#9ca3af', gap: 16 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ display: 'flex', marginTop: 8, fontSize: 11, color: '#9ca3af', columnGap: 16 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', columnGap: 4 }}>
                             <div style={{ width: 12, height: 12, backgroundColor: '#3b82f6', borderRadius: 2 }}></div>
-                            <span>Prediccion</span>
+                            <div style={{ display: 'flex' }}>Prediccion</div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <div style={{ width: 12, height: 12, backgroundColor: '#fee2e2', borderRadius: 2, border: '1px solid #fca5a5' }}></div>
-                            <span style={{ color: '#dc2626' }}>Pts acumulados</span>
+                        <div style={{ display: 'flex', alignItems: 'center', columnGap: 4 }}>
+                            <div style={{ width: 12, height: 12, backgroundColor: '#fee2e2', borderRadius: 2, borderWidth: 1, borderStyle: 'solid', borderColor: '#fca5a5' }}></div>
+                            <div style={{ display: 'flex', color: '#dc2626' }}>Pts acumulados</div>
                         </div>
                     </div>
                 </div>
