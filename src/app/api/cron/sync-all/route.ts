@@ -2,6 +2,25 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { syncPencaResults } from '@/lib/services/sync-results';
 
+/**
+ * Envía un mensaje de WhatsApp gratis vía CallMeBot.
+ * Requiere CALLMEBOT_PHONE y CALLMEBOT_APIKEY en las variables de entorno.
+ * Activación (una sola vez): https://www.callmebot.com/blog/free-api-whatsapp-messages/
+ */
+async function sendWhatsApp(message: string): Promise<void> {
+    const phone = process.env.CALLMEBOT_PHONE;
+    const apikey = process.env.CALLMEBOT_APIKEY;
+    if (!phone || !apikey) return; // Si no está configurado, silencioso
+
+    const encoded = encodeURIComponent(message);
+    const url = `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${encoded}&apikey=${apikey}`;
+    try {
+        await fetch(url);
+    } catch (err) {
+        console.error('CallMeBot error:', err);
+    }
+}
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -76,8 +95,23 @@ export async function GET(request: Request) {
             }
         }
 
+        const processed_at = new Date().toISOString();
+
+        // Notificar por WhatsApp solo cuando se ejecutó al menos una sincronización real
+        const synced = results.filter(r => r.status === 'success' || r.status === 'error');
+        if (synced.length > 0) {
+            const now = new Date().toLocaleString('es-UY', { timeZone: 'America/Montevideo' });
+            const lines = synced.map(r => {
+                const icon = r.status === 'success' ? '✅' : '❌';
+                const detail = r.status === 'error' ? ` - ${(r as any).error?.substring(0, 80)}` : '';
+                return `${icon} ${r.slug}${detail}`;
+            });
+            const msg = `🏇 *Sync automática* (${now})\n${lines.join('\n')}`;
+            await sendWhatsApp(msg);
+        }
+
         return NextResponse.json({
-            processed_at: new Date().toISOString(),
+            processed_at,
             results
         });
 
