@@ -145,6 +145,46 @@ export async function GET(
             return NextResponse.json({ imgW, imgH, numRaces, participantCount: participants.length, pencaName: penca.name, raceDayName: raceDay.day_name });
         }
 
+        // Static test: render with hardcoded 3x3 data to verify nested layout works
+        if (req.nextUrl.searchParams.get('static') === '1') {
+            const sp = [
+                { name: 'Jugador 1', raceData: [{ pred: 3, accum: 10 }, { pred: 7, accum: 20 }, { pred: 1, accum: 30 }] },
+                { name: 'Jugador 2', raceData: [{ pred: 5, accum: null }, { pred: null, accum: null }, { pred: 2, accum: null }] },
+                { name: 'Jugador 3', raceData: [{ pred: 9, accum: 5 }, { pred: null, accum: 5 }, { pred: 4, accum: 5 }] },
+            ];
+            const sr = [{ id: '1', seq: 1, status: 'result_published' }, { id: '2', seq: 2, status: 'result_published' }, { id: '3', seq: 3, status: 'open' }];
+            const sw = NAME_W + 3 * CELL_W * 2 + PAD * 2;
+            const sh = PAD * 2 + 70 + 20 + 28 + 20 + 3 * ROW_H + 30;
+            return new ImageResponse((
+                <div style={{ display: 'flex', flexDirection: 'column', width: sw, height: sh, backgroundColor: '#f9fafb', paddingTop: PAD, paddingBottom: PAD, paddingLeft: PAD, paddingRight: PAD }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 12 }}>
+                        <div style={{ fontSize: 20, fontWeight: 'bold', color: '#1f2937' }}>Static Test - {penca.name}</div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', borderWidth: 1, borderStyle: 'solid', borderColor: '#d1d5db' }}>
+                        <div style={{ display: 'flex', backgroundColor: '#4f46e5' }}>
+                            <div style={{ width: NAME_W, paddingLeft: 8, color: 'white', fontWeight: 'bold', fontSize: 12 }}>JUGADOR</div>
+                            {sr.map((r, ri) => <div key={ri} style={{ display: 'flex', width: CELL_W * 2, justifyContent: 'center', color: 'white', fontSize: 12 }}>C{r.seq}</div>)}
+                        </div>
+                        {sp.map((p, pi) => (
+                            <div key={pi} style={{ display: 'flex', height: ROW_H, backgroundColor: pi % 2 === 0 ? '#ffffff' : '#f3f4f6', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', width: NAME_W, paddingLeft: 8, fontSize: FONT_SIZE }}>{p.name}</div>
+                                {p.raceData.map((rd, ri) => (
+                                    <div key={ri} style={{ display: 'flex', width: CELL_W * 2, height: ROW_H, alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', width: CELL_W, height: ROW_H, backgroundColor: rd.pred !== null ? '#3b82f6' : '#e5e7eb', justifyContent: 'center', alignItems: 'center', color: rd.pred !== null ? 'white' : '#9ca3af', fontSize: FONT_SIZE }}>
+                                            {rd.pred !== null ? String(rd.pred) : '-'}
+                                        </div>
+                                        <div style={{ display: 'flex', width: CELL_W, height: ROW_H, justifyContent: 'center', alignItems: 'center', color: rd.accum !== null ? '#dc2626' : '#d1d5db', fontSize: FONT_SIZE }}>
+                                            {rd.accum !== null ? String(rd.accum) : ''}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ), { width: sw, height: sh });
+        }
+
         const dateStr = raceDay.day_date
             ? new Date(raceDay.day_date + 'T12:00:00').toLocaleDateString('es-UY', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
             : '';
