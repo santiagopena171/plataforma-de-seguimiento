@@ -4,11 +4,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
-const CELL_W = 38;
-const NAME_W = 130;
-const ROW_H = 28;
-const FONT_SIZE = 13;
-const PAD = 20;
+const PRED_W = 44;   // ancho celda predicción
+const PTS_W  = 52;   // ancho celda puntos acumulados (ligeramente más ancho)
+const COL_W  = PRED_W + PTS_W;
+const NAME_W = 160;
+const ROW_H  = 40;
+const HEADER_H = 46;
+const PAD = 32;
 
 async function fetchDailySummary(slug: string) {
     const supabase = createClient(
@@ -97,10 +99,135 @@ async function fetchDailySummary(slug: string) {
     return { penca, raceDay, races, participants };
 }
 
+function renderImage(
+    penca: { name: string },
+    raceDay: { day_name: string },
+    races: any[],
+    participants: Array<{ name: string; raceData: Array<{ pred: number | null; accum: number | null }> }>
+) {
+    const numRaces = races.length;
+    const tableW = NAME_W + numRaces * COL_W;
+    const imgW = tableW + PAD * 2;
+    const titleH = 100;
+    const imgH = PAD * 2 + titleH + HEADER_H + participants.length * ROW_H + 36;
+    const dayLabel = raceDay.day_name || '';
+
+    return new ImageResponse(
+        (
+            <div
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    width: imgW,
+                    height: imgH,
+                    backgroundColor: '#ffffff',
+                    paddingTop: PAD,
+                    paddingBottom: PAD,
+                    paddingLeft: PAD,
+                    paddingRight: PAD,
+                    fontFamily: 'sans-serif',
+                }}
+            >
+                {/* ── TÍTULO ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 14 }}>
+                    <div style={{ display: 'flex', fontSize: 30, fontWeight: 'bold', color: '#1e1b4b', letterSpacing: -0.5 }}>
+                        {penca.name}
+                    </div>
+                    <div style={{ display: 'flex', fontSize: 15, color: '#6b7280', marginTop: 4 }}>
+                        {dayLabel} - Resumen Diario
+                    </div>
+                    <div style={{ display: 'flex', width: tableW, height: 3, backgroundColor: '#4f46e5', marginTop: 10, borderRadius: 2 }}></div>
+                </div>
+
+                {/* ── TABLA ── */}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+
+                    {/* Header */}
+                    <div style={{ display: 'flex', backgroundColor: '#312e81', height: HEADER_H, alignItems: 'center', borderRadius: '6px 6px 0 0' }}>
+                        <div style={{ display: 'flex', width: NAME_W, paddingLeft: 12, color: '#e0e7ff', fontWeight: 'bold', fontSize: 13, letterSpacing: 1 }}>
+                            NOMBRE
+                        </div>
+                        {races.map((race: any) => (
+                            <div key={race.id} style={{ display: 'flex', width: COL_W, justifyContent: 'center', alignItems: 'center', color: '#e0e7ff', fontWeight: 'bold', fontSize: 15, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#4338ca' }}>
+                                {race.seq}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Filas */}
+                    {participants.map((p, idx) => (
+                        <div
+                            key={idx}
+                            style={{
+                                display: 'flex',
+                                height: ROW_H,
+                                backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f5f5f5',
+                                borderTopWidth: 1,
+                                borderTopStyle: 'solid',
+                                borderTopColor: '#e5e7eb',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <div style={{ display: 'flex', width: NAME_W, paddingLeft: 10, paddingRight: 6, alignItems: 'center', gap: 6 }}>
+                                <div style={{ display: 'flex', fontSize: 12, color: '#9ca3af', width: 20 }}>{idx + 1}.</div>
+                                <div style={{ display: 'flex', fontSize: 14, color: '#1f2937', fontWeight: idx < 3 ? 'bold' : 'normal' }}>
+                                    {p.name.length > 15 ? p.name.substring(0, 14) + '…' : p.name}
+                                </div>
+                            </div>
+                            {p.raceData.map((rd, ri) => (
+                                <div key={ri} style={{ display: 'flex', width: COL_W, height: ROW_H, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#e5e7eb', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', width: PRED_W, height: ROW_H, backgroundColor: rd.pred !== null ? '#4f6fce' : '#e9ecf5', justifyContent: 'center', alignItems: 'center', color: rd.pred !== null ? '#ffffff' : '#c0c8e0', fontWeight: 'bold', fontSize: 15 }}>
+                                        {rd.pred !== null ? String(rd.pred) : ''}
+                                    </div>
+                                    <div style={{ display: 'flex', width: PTS_W, height: ROW_H, backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f5f5f5', justifyContent: 'center', alignItems: 'center', color: rd.accum !== null ? '#dc2626' : '#d1d5db', fontWeight: 'bold', fontSize: 15 }}>
+                                        {rd.accum !== null ? String(rd.accum) : ''}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+
+                {/* ── LEYENDA ── */}
+                <div style={{ display: 'flex', marginTop: 10, fontSize: 12, color: '#6b7280', gap: 20, justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ width: 14, height: 14, backgroundColor: '#4f6fce', borderRadius: 3 }}></div>
+                        <div style={{ display: 'flex' }}>Predicción</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ width: 14, height: 14, backgroundColor: '#fee2e2', borderRadius: 3, borderWidth: 1, borderStyle: 'solid', borderColor: '#fca5a5' }}></div>
+                        <div style={{ display: 'flex', color: '#dc2626' }}>Puntos Acumulados</div>
+                    </div>
+                </div>
+            </div>
+        ),
+        { width: imgW, height: imgH }
+    );
+}
+
 export async function GET(
     req: NextRequest,
     { params }: { params: { slug: string } }
 ) {
+    // Modo preview: genera imagen con datos de muestra para verificar el diseño
+    const isPreview = req.nextUrl.searchParams.get('preview') === '1';
+    if (isPreview) {
+        const mockParticipants = [
+            { name: 'oveja negra 2',  raceData: [1,2,3,4,5,6,7,8].map((_, i) => ({ pred: i+1,       accum: (i+1)*11 })) },
+            { name: 'capi',           raceData: [1,2,3,4,5,6,7,8].map((_, i) => ({ pred: 8-i,        accum: i < 2 ? 13 : (i*10)+3 })) },
+            { name: 'oveja negra 1',  raceData: [1,2,3,4,5,6,7,8].map((_, i) => ({ pred: i%8+1,      accum: i < 1 ? 13 : i*8 })) },
+            { name: 'negroni',        raceData: [1,2,3,4,5,6,7,8].map((_, i) => ({ pred: (i*3)%8+1,  accum: i*7 })) },
+            { name: 'mega quick',     raceData: [1,2,3,4,5,6,7,8].map((_, i) => ({ pred: i+1,        accum: i*5+4 })) },
+            { name: 'michelotto',     raceData: [1,2,3,4,5,6,7,8].map((_, i) => ({ pred: (i+4)%8+1,  accum: i*5+5 })) },
+            { name: 'chito',          raceData: [1,2,3,4,5,6,7,8].map((_, i) => ({ pred: i+1,        accum: i*4+4 })) },
+            { name: 'mestre caveira', raceData: [1,2,3,4,5,6,7,8].map((_, i) => ({ pred: (i+2)%8+1,  accum: i*4+7 })) },
+            { name: 'palomo',         raceData: [1,2,3,4,5,6,7,8].map((_, i) => ({ pred: (i+5)%8+1,  accum: i*2+2 })) },
+            { name: 'loba',           raceData: [1,2,3,4,5,6,7,8].map((_, i) => ({ pred: (i+6)%8+1,  accum: i*2+7 })) },
+        ];
+        const mockRaces = [1,2,3,4,5,6,7,8].map(n => ({ id: n, seq: n, status: 'result_published' }));
+        return renderImage({ name: 'paysandu 28' }, { day_name: 'sabado 28' }, mockRaces, mockParticipants);
+    }
+
     try {
         const data = await fetchDailySummary(params.slug);
         if (!data) {
@@ -113,117 +240,13 @@ export async function GET(
 
         const { penca, raceDay, races, participants } = data;
 
-        const numRaces = races.length;
-        const tableW = NAME_W + numRaces * CELL_W * 2;
-        const imgW = tableW + PAD * 2;
-        const imgH = PAD * 2 + 70 + 20 + 28 + 20 + participants.length * ROW_H + 30;
-
-        const dateStr = raceDay.day_date
-            ? new Date(raceDay.day_date + 'T12:00:00').toLocaleDateString('es-UY', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
-            : '';
-        const publishedCount = races.filter((r: any) => r.status === 'result_published').length;
-
         try {
-        return new ImageResponse(
-            (
-                <div
-                    style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        width: imgW,
-                        height: imgH,
-                        backgroundColor: '#f9fafb',
-                        paddingTop: PAD,
-                        paddingBottom: PAD,
-                        paddingLeft: PAD,
-                        paddingRight: PAD,
-                    }}
-                >
-                    {/* Encabezado */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 12 }}>
-                        <div style={{ display: 'flex', fontSize: 20, fontWeight: 'bold', color: '#1f2937' }}>Pencas Hipicas - {penca.name}</div>
-                        <div style={{ display: 'flex', fontSize: 14, color: '#4b5563', marginTop: 2 }}>{raceDay.day_name}{dateStr ? ` - ${dateStr}` : ''}</div>
-                        <div style={{ display: 'flex', fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Carreras con resultado: {publishedCount} / {races.length}</div>
-                    </div>
-
-                    {/* Tabla */}
-                    <div style={{ display: 'flex', flexDirection: 'column', borderWidth: 1, borderStyle: 'solid', borderColor: '#d1d5db', borderRadius: 6 }}>
-
-                        {/* Header fila 1 */}
-                        <div style={{ display: 'flex', backgroundColor: '#4f46e5' }}>
-                            <div style={{ width: NAME_W, paddingTop: 6, paddingBottom: 6, paddingLeft: 8, paddingRight: 8, color: 'white', fontWeight: 'bold', fontSize: 12 }}>JUGADOR</div>
-                            {(races as any[]).map((race: any) => (
-                                <div key={race.id} style={{ display: 'flex', width: CELL_W * 2, justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', fontSize: 12, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#6366f1', paddingTop: 6, paddingBottom: 6 }}>
-                                    C{race.seq}
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Header fila 2: pred / pts */}
-                        <div style={{ display: 'flex', backgroundColor: '#6366f1' }}>
-                            <div style={{ width: NAME_W, paddingTop: 2, paddingBottom: 2, paddingLeft: 8, paddingRight: 8, fontSize: 10, color: '#c7d2fe' }}></div>
-                            {(races as any[]).map((race: any) => (
-                                <div key={race.id} style={{ display: 'flex', width: CELL_W * 2, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#818cf8' }}>
-                                    <div style={{ display: 'flex', width: CELL_W, justifyContent: 'center', fontSize: 10, color: '#bfdbfe', paddingTop: 2, paddingBottom: 2 }}>pred</div>
-                                    <div style={{ display: 'flex', width: CELL_W, justifyContent: 'center', fontSize: 10, color: '#fecaca', paddingTop: 2, paddingBottom: 2 }}>pts</div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Filas de participantes */}
-                        {participants.map((p, idx) => (
-                            <div
-                                key={idx}
-                                style={{
-                                    display: 'flex',
-                                    height: ROW_H,
-                                    backgroundColor: idx % 2 === 0 ? '#ffffff' : '#f3f4f6',
-                                    borderTopWidth: 1,
-                                    borderTopStyle: 'solid',
-                                    borderTopColor: '#e5e7eb',
-                                    alignItems: 'center',
-                                }}
-                            >
-                                <div style={{ display: 'flex', width: NAME_W, paddingLeft: 8, paddingRight: 8, fontSize: FONT_SIZE, color: '#1f2937', fontWeight: idx < 3 ? 'bold' : 'normal' }}>
-                                    <div style={{ display: 'flex', color: '#6b7280', marginRight: 4, width: 18 }}>{idx + 1}.</div>
-                                    <div style={{ display: 'flex' }}>{p.name.length > 14 ? p.name.substring(0, 13) + '…' : p.name}</div>
-                                </div>
-
-                                {p.raceData.map((rd, ri) => (
-                                    <div key={ri} style={{ display: 'flex', width: CELL_W * 2, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#e5e7eb', height: ROW_H, alignItems: 'center' }}>
-                                        <div style={{ display: 'flex', width: CELL_W, height: ROW_H, backgroundColor: rd.pred !== null ? '#3b82f6' : '#e5e7eb', justifyContent: 'center', alignItems: 'center', color: rd.pred !== null ? 'white' : '#9ca3af', fontWeight: 'bold', fontSize: FONT_SIZE }}>
-                                            {rd.pred !== null ? String(rd.pred) : '-'}
-                                        </div>
-                                        <div style={{ display: 'flex', width: CELL_W, height: ROW_H, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center', color: rd.accum !== null ? '#dc2626' : '#d1d5db', fontWeight: 'bold', fontSize: FONT_SIZE, borderLeftWidth: 1, borderLeftStyle: 'solid', borderLeftColor: '#f3f4f6' }}>
-                                            {rd.accum !== null ? String(rd.accum) : ''}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Leyenda */}
-                    <div style={{ display: 'flex', marginTop: 8, fontSize: 11, color: '#9ca3af', gap: 16 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <div style={{ width: 12, height: 12, backgroundColor: '#3b82f6', borderRadius: 2 }}></div>
-                            <div style={{ display: 'flex' }}>Prediccion</div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <div style={{ width: 12, height: 12, backgroundColor: '#fee2e2', borderRadius: 2, borderWidth: 1, borderStyle: 'solid', borderColor: '#fca5a5' }}></div>
-                            <div style={{ display: 'flex', color: '#dc2626' }}>Pts acumulados</div>
-                        </div>
-                    </div>
-                </div>
-            ),
-            { width: imgW, height: imgH }
-        );
+            return renderImage(penca, raceDay, races, participants);
         } catch (imgErr: any) {
             console.error('ImageResponse error:', imgErr);
             return NextResponse.json({
                 error: 'ImageResponse failed: ' + imgErr.message,
                 stack: imgErr.stack?.substring(0, 800),
-                imgW, imgH, numRaces, participantCount: participants.length,
             }, { status: 500 });
         }
     } catch (err: any) {
