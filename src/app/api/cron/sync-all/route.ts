@@ -2,17 +2,28 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { syncPencaResults } from '@/lib/services/sync-results';
 
-/** Envía una foto a Telegram con caption opcional */
+/** Envía una foto a Telegram con caption opcional — descarga primero y sube como multipart */
 async function sendTelegramPhoto(photoUrl: string, caption?: string): Promise<{ sent: boolean; error?: string }> {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHAT_ID;
     if (!token || !chatId) return { sent: false, error: 'TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID no configurados' };
 
     try {
+        // Descargar la imagen primero
+        const imgRes = await fetch(photoUrl);
+        if (!imgRes.ok) return { sent: false, error: `Image fetch failed: ${imgRes.status}` };
+        const imgBlob = await imgRes.blob();
+
+        // Subir como multipart/form-data (más confiable que URL)
+        const form = new FormData();
+        form.append('chat_id', chatId);
+        form.append('photo', imgBlob, 'resumen.png');
+        if (caption) form.append('caption', caption);
+        form.append('parse_mode', 'Markdown');
+
         const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, photo: photoUrl, caption, parse_mode: 'Markdown' }),
+            body: form,
         });
         const json = await res.json();
         if (!json.ok) return { sent: false, error: json.description };
