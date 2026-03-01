@@ -103,7 +103,7 @@ export async function GET(
 ) {
     // Quick probe: ?info=1 returns JSON without rendering
     if (req.nextUrl.searchParams.get('info') === '1') {
-        return NextResponse.json({ build: 'v3c3710e', slug: params.slug, ok: true });
+        return NextResponse.json({ build: 'v8ec4dc8', slug: params.slug, ok: true });
     }
     try {
         const data = await fetchDailySummary(params.slug);
@@ -139,6 +139,11 @@ export async function GET(
         const tableW = NAME_W + numRaces * CELL_W * 2;
         const imgW = tableW + PAD * 2;
         const imgH = PAD * 2 + 70 + 20 + 28 + 20 + participants.length * ROW_H + 30;
+
+        // Debug mode: return dimensions without rendering (add ?debug=1 to URL)
+        if (req.nextUrl.searchParams.get('debug') === '1') {
+            return NextResponse.json({ imgW, imgH, numRaces, participantCount: participants.length, pencaName: penca.name, raceDayName: raceDay.day_name });
+        }
 
         const dateStr = raceDay.day_date
             ? new Date(raceDay.day_date + 'T12:00:00').toLocaleDateString('es-UY', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
