@@ -103,7 +103,7 @@ export async function GET(
 ) {
     // Quick probe: ?info=1 returns JSON without rendering
     if (req.nextUrl.searchParams.get('info') === '1') {
-        return NextResponse.json({ build: 'v8ec4dc8', slug: params.slug, ok: true });
+        return NextResponse.json({ build: 'vfinal', slug: params.slug, ok: true });
     }
     try {
         const data = await fetchDailySummary(params.slug);
@@ -158,7 +158,7 @@ export async function GET(
             return new ImageResponse((
                 <div style={{ display: 'flex', flexDirection: 'column', width: sw, height: sh, backgroundColor: '#f9fafb', paddingTop: PAD, paddingBottom: PAD, paddingLeft: PAD, paddingRight: PAD }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 12 }}>
-                        <div style={{ fontSize: 20, fontWeight: 'bold', color: '#1f2937' }}>Static Test - {penca.name}</div>
+                        <div style={{ display: 'flex', fontSize: 20, fontWeight: 'bold', color: '#1f2937' }}>Static Test - {penca.name}</div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', borderWidth: 1, borderStyle: 'solid', borderColor: '#d1d5db' }}>
                         <div style={{ display: 'flex', backgroundColor: '#4f46e5' }}>
@@ -167,7 +167,7 @@ export async function GET(
                         </div>
                         {sp.map((p, pi) => (
                             <div key={pi} style={{ display: 'flex', height: ROW_H, backgroundColor: pi % 2 === 0 ? '#ffffff' : '#f3f4f6', alignItems: 'center' }}>
-                                <div style={{ display: 'flex', width: NAME_W, paddingLeft: 8, fontSize: FONT_SIZE }}>{p.name}</div>
+                                        <div style={{ display: 'flex', width: NAME_W, paddingLeft: 8, fontSize: FONT_SIZE, color: '#1f2937' }}>{p.name}</div>
                                 {p.raceData.map((rd, ri) => (
                                     <div key={ri} style={{ display: 'flex', width: CELL_W * 2, height: ROW_H, alignItems: 'center' }}>
                                         <div style={{ display: 'flex', width: CELL_W, height: ROW_H, backgroundColor: rd.pred !== null ? '#3b82f6' : '#e5e7eb', justifyContent: 'center', alignItems: 'center', color: rd.pred !== null ? 'white' : '#9ca3af', fontSize: FONT_SIZE }}>
@@ -208,9 +208,9 @@ export async function GET(
                 >
                     {/* Encabezado */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 12 }}>
-                        <div style={{ fontSize: 20, fontWeight: 'bold', color: '#1f2937' }}>Pencas Hipicas - {penca.name}</div>
-                        <div style={{ fontSize: 14, color: '#4b5563', marginTop: 2 }}>{raceDay.day_name}{dateStr ? ` - ${dateStr}` : ''}</div>
-                        <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Carreras con resultado: {publishedCount}/{races.length}</div>
+                        <div style={{ display: 'flex', fontSize: 20, fontWeight: 'bold', color: '#1f2937' }}>Pencas Hipicas - {penca.name}</div>
+                        <div style={{ display: 'flex', fontSize: 14, color: '#4b5563', marginTop: 2 }}>{raceDay.day_name}{dateStr ? ` - ${dateStr}` : ''}</div>
+                        <div style={{ display: 'flex', fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Carreras con resultado: {publishedCount} / {races.length}</div>
                     </div>
 
                     {/* Tabla */}
