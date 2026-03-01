@@ -102,17 +102,23 @@ export async function syncPencaResults(pencaSlug: string, isForce: boolean = fal
             if (isFirstPlaceTie) {
                 const firstTie1 = getEntryId((positions as any)[1][0]);
                 const firstTie2 = getEntryId((positions as any)[1][1]);
-                const thirdPlace = getEntryId((positions as any)[3][0]);
-                const fourthPlace = getEntryId((positions as any)[4][0]);
 
                 if (!firstTie1 || !firstTie2) {
                     log(`❌ Error de mapeo de caballos para empate en Carrera #${raceSeq}`);
                     continue;
                 }
 
+                // El tercer lugar puede venir como posición 2, 3 ó 4 según el hipódromo
+                const thirdPlaceNum = (positions as any)[2]?.[0] ?? (positions as any)[3]?.[0] ?? null;
+                const fourthPlaceNum = (positions as any)[3]?.[0] ?? (positions as any)[4]?.[0] ?? null;
+                const thirdPlace  = thirdPlaceNum  ? getEntryId(thirdPlaceNum)  : null;
+                const fourthPlace = fourthPlaceNum && fourthPlaceNum !== thirdPlaceNum ? getEntryId(fourthPlaceNum) : null;
+
                 officialOrder = [firstTie1, firstTie2];
-                if (thirdPlace) officialOrder.push(thirdPlace);
+                if (thirdPlace)  officialOrder.push(thirdPlace);
                 if (fourthPlace) officialOrder.push(fourthPlace);
+
+                log(`🔁 Empate en 1er lugar detectado: #${(positions as any)[1][0]} y #${(positions as any)[1][1]}. 3ro: ${thirdPlaceNum ?? 'N/A'}`);
             } else {
                 const firstPlace = getEntryId((positions as any)[1][0]);
                 const secondPlace = getEntryId((positions as any)[2][0]);
