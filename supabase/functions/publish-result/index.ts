@@ -233,7 +233,19 @@ async function calculateScores(
   }));
 
   const pointsTop3 = ruleset.points_top3
-  const modalities = ruleset.modalities_enabled
+
+  // Normalize modality names (support Spanish names like 'lugar', 'ganador')
+  const rawModalities: any[] = ruleset.modalities_enabled || []
+  const modalities: string[] = rawModalities.map((m: any) => {
+    if (!m) return m
+    const mm = m.toString().toLowerCase()
+    if (mm === 'lugar' || mm === 'place') return 'place'
+    if (mm === 'ganador' || mm === 'winner') return 'winner'
+    if (mm === 'top3' || mm === 'top_3' || mm === 'top-three') return 'top3'
+    if (mm === 'exacta') return 'exacta'
+    if (mm === 'trifecta') return 'trifecta'
+    return mm
+  })
 
   // Step 1: Pre-calculate who got the winner to handle exclusive & batacazo
   let exactWinnerGuesserCount = 0;
