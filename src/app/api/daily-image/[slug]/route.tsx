@@ -149,7 +149,7 @@ export async function GET(
                         display: 'flex',
                         flexDirection: 'column',
                         width: imgW,
-                        minHeight: imgH,
+                        height: imgH,
                         backgroundColor: '#f9fafb',
                         padding: PAD,
                         fontFamily: 'sans-serif',
