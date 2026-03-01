@@ -94,6 +94,12 @@ export async function GET(request: Request) {
             if (diffMinutes >= penca.sync_interval_minutes) {
                 console.log(`Ejecutando sincronización para: ${penca.slug} (Intervalo: ${penca.sync_interval_minutes}m, Pasaron: ${diffMinutes}m)`);
 
+                // Marcar como sincronizado AHORA para que el intervalo se respete aunque falle
+                await supabaseAdmin
+                    .from('pencas')
+                    .update({ last_sync_at: new Date().toISOString() })
+                    .eq('id', penca.id);
+
                 try {
                     const result = await syncPencaResults(penca.slug, true);
 
