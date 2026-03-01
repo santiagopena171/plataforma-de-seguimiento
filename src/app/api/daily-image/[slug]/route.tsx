@@ -101,6 +101,10 @@ export async function GET(
     req: NextRequest,
     { params }: { params: { slug: string } }
 ) {
+    // Quick probe: ?info=1 returns JSON without rendering
+    if (req.nextUrl.searchParams.get('info') === '1') {
+        return NextResponse.json({ build: 'v769391e', slug: params.slug, ok: true });
+    }
     try {
         const data = await fetchDailySummary(params.slug);
         if (!data) {
