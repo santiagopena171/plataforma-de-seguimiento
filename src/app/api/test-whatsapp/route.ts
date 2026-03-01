@@ -6,8 +6,16 @@ export async function GET() {
     const phone = process.env.CALLMEBOT_PHONE;
     const apikey = process.env.CALLMEBOT_APIKEY;
 
+    // Lista de claves de env vars cargadas (para debug)
+    const envKeys = Object.keys(process.env).filter(k => !k.includes('KEY') && !k.includes('SECRET') && !k.includes('ANON'));
+
     if (!phone || !apikey) {
-        return NextResponse.json({ error: 'Variables CALLMEBOT_PHONE o CALLMEBOT_APIKEY no configuradas', phone: !!phone, apikey: !!apikey });
+        return NextResponse.json({
+            error: 'Variables CALLMEBOT_PHONE o CALLMEBOT_APIKEY no configuradas',
+            phone: !!phone,
+            apikey: !!apikey,
+            loaded_env_keys: envKeys,
+        });
     }
 
     const msg = encodeURIComponent('🧪 Test desde Vercel - Pencas Hípicas funcionando!');
