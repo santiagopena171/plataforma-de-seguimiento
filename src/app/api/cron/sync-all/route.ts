@@ -7,17 +7,20 @@ import { syncPencaResults } from '@/lib/services/sync-results';
  * Requiere CALLMEBOT_PHONE y CALLMEBOT_APIKEY en las variables de entorno.
  * Activación (una sola vez): https://www.callmebot.com/blog/free-api-whatsapp-messages/
  */
-async function sendWhatsApp(message: string): Promise<void> {
+async function sendWhatsApp(message: string): Promise<{ sent: boolean; status?: number; response?: string; error?: string; varsPresent?: boolean }> {
     const phone = process.env.CALLMEBOT_PHONE;
     const apikey = process.env.CALLMEBOT_APIKEY;
-    if (!phone || !apikey) return; // Si no está configurado, silencioso
+    if (!phone || !apikey) return { sent: false, varsPresent: false };
 
     const encoded = encodeURIComponent(message);
     const url = `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${encoded}&apikey=${apikey}`;
     try {
-        await fetch(url);
-    } catch (err) {
+        const res = await fetch(url);
+        const text = await res.text();
+        return { sent: true, status: res.status, response: text.substring(0, 200), varsPresent: true };
+    } catch (err: any) {
         console.error('CallMeBot error:', err);
+        return { sent: false, error: err.message, varsPresent: true };
     }
 }
 
@@ -99,6 +102,7 @@ export async function GET(request: Request) {
 
         // Notificar por WhatsApp solo cuando se ejecutó al menos una sincronización real
         const synced = results.filter(r => r.status === 'success' || r.status === 'error');
+        let whatsappResult: any = { skipped: true, reason: 'No hubo syncs reales' };
         if (synced.length > 0) {
             const now = new Date().toLocaleString('es-UY', { timeZone: 'America/Montevideo' });
             const lines = synced.map(r => {
@@ -107,12 +111,13 @@ export async function GET(request: Request) {
                 return `${icon} ${r.slug}${detail}`;
             });
             const msg = `🏇 *Sync automática* (${now})\n${lines.join('\n')}`;
-            await sendWhatsApp(msg);
+            whatsappResult = await sendWhatsApp(msg);
         }
 
         return NextResponse.json({
             processed_at,
-            results
+            results,
+            whatsapp: whatsappResult
         });
 
     } catch (error: any) {
