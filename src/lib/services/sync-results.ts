@@ -252,6 +252,7 @@ function parseResults(workbook: any, log: (m: string) => void) {
         // por eso escaneamos las primeras columnas buscando el patrón Nº.
         let position: number | null = null;
         let hasAnyPosition = false;
+        let hasRetiroInPositionCol = false;
         for (let colIdx = 0; colIdx <= 2; colIdx++) {
             const cell = String(row[colIdx] || '').trim();
             const posMatch = cell.match(/^(\d+)º$/);
@@ -261,6 +262,11 @@ function parseResults(workbook: any, log: (m: string) => void) {
                     hasAnyPosition = true;
                     if (posNum <= 4) position = posNum;
                 }
+                break;
+            }
+            // Detectar retirado directamente en la columna de posición
+            if (/^(ret|s\/c|np|dnf|fs|ff)$/i.test(cell)) {
+                hasRetiroInPositionCol = true;
                 break;
             }
         }
@@ -278,12 +284,14 @@ function parseResults(workbook: any, log: (m: string) => void) {
                 if (position === 1 && parsedRaces[currentRaceSeq].dividend === 0 && dividendStr && !isNaN(parseFloat(dividendStr))) {
                     parsedRaces[currentRaceSeq].dividend = parseFloat(dividendStr);
                 }
-            } else if (!hasAnyPosition) {
-                // Para marcar retirados buscamos palabras clave en toda la fila
-                const rowText = row.map((c) => String(c || '').toLowerCase()).join(' ');
-                const hasRetiroFlag = /retiro|retirado|ret\.|fs\b|ff\b|no corre|no particip/.test(rowText);
+            } else if (!hasAnyPosition || hasRetiroInPositionCol) {
+                // Para marcar retirados buscamos palabras clave en toda la fila.
+                // Incluimos variantes del X-Turf: RET, S/C, NP, DNF, etc.
+                const rowText = row.map((c: any) => String(c || '').toLowerCase()).join(' ');
+                const hasRetiroFlag = hasRetiroInPositionCol || /retiro|retirado|\bret\b|ret\.|s\/c|sc\b|no corre|no corri|no particip|\bnp\b|\bdnf\b|\bfs\b|\bff\b/.test(rowText);
                 if (hasRetiroFlag) {
                     parsedRaces[currentRaceSeq].scratched.push(horseNum);
+                    log(`  🔄 Caballo retirado detectado: #${horseNum} en carrera ${currentRaceSeq}`);
                 }
             }
         }
