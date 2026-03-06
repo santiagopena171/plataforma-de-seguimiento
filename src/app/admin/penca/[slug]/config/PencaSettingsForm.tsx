@@ -349,6 +349,7 @@ export default function PencaSettingsForm({
             <option value={0}>Desactivado (Solo manual)</option>
             <option value={15}>Cada 15 minutos</option>
             <option value={30}>Cada 30 minutos</option>
+            <option value={45}>Cada 45 minutos</option>
             <option value={60}>Cada hora</option>
           </select>
           {Number(syncInterval) > 0 && (
