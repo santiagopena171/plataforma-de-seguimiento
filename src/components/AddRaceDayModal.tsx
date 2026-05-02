@@ -16,7 +16,7 @@ export default function AddRaceDayModal({ pencaSlug, pencaId, onClose, existingD
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     dayName: '',
-    numRaces: 1,
+    numRaces: 0,
   });
 
   // Calcular el próximo número de día
@@ -106,10 +106,10 @@ export default function AddRaceDayModal({ pencaSlug, pencaId, onClose, existingD
             </label>
             <input
               type="number"
-              min="1"
+              min="0"
               max="20"
               value={formData.numRaces}
-              onChange={(e) => setFormData({ ...formData, numRaces: parseInt(e.target.value) || 1 })}
+              onChange={(e) => setFormData({ ...formData, numRaces: parseInt(e.target.value) || 0 })}
               className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               required
             />
